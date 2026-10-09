@@ -39,20 +39,18 @@ async function load(){
   if(c.error)console.warn("RETAIL categories:",c.error.message); else categories=c.data||[];
   if(p.error){
    console.error("RETAIL products:",p.error);
-   products=[{id:"nilzan-info",title:"Nilzan Liquid 100 ml",description:"Veterinary product listing — seller must confirm availability and details before purchase.",category:"Veterinary",price:95,mrp:98,sale_price:95,brand:"Nilzan",stock:0,emoji:"🧴",seller_name:"Listing pending"}];
+   products=[];
    if(count)count.textContent="Catalogue connection issue";
-   if(list)list.innerHTML="<div class='empty'>Live catalogue could not load. Check the Supabase database settings and product-table permissions. A sample listing is shown below and cannot be ordered.</div>";
+   if(list)list.innerHTML="<div class='empty'>Live catalogue could not load. Check the Supabase database settings and product-table permissions. No sample products are shown.</div>";
   }else{
    products=(p.data||[]).map(x=>({...x,category:categories.find(k=>k.id===x.category_id)?.name||"Other",seller_name:"Marketplace seller"}));
-   if(!products.length){
-    products=[{id:"nilzan-info",title:"Nilzan Liquid 100 ml",description:"Veterinary product listing — seller must confirm availability and details before purchase.",category:"Veterinary",price:95,mrp:98,sale_price:95,brand:"Nilzan",stock:0,emoji:"🧴",seller_name:"Listing pending"}];
-   }
+   if(!products.length && list)list.innerHTML="<div class='empty'>No products available yet. Please check back soon.</div>";
   }
   renderCats();render();
   if(p.error && count)count.textContent="Database error";
  }catch(e){
   console.error("RETAIL catalogue load failed:",e);
-  products=[{id:"nilzan-info",title:"Nilzan Liquid 100 ml",description:"Listing pending; this is not a live, orderable product.",category:"Veterinary",price:95,mrp:98,sale_price:95,brand:"Nilzan",stock:0,emoji:"🧴",seller_name:"Listing pending"}];
+  products=[];
   renderCats();render();
   if(count)count.textContent="Could not connect";
   if(list)list.insertAdjacentHTML("afterbegin","<div class='empty'>Could not connect to the live catalogue. Please check the database configuration.</div>");
