@@ -145,4 +145,4 @@ db.auth.onAuthStateChange((_event, session)=>{
 });
 load().catch(e=>{console.error("RETAIL startup:",e);const n=$("resultCount");if(n)n.textContent="Catalogue unavailable";const p=$("products");if(p)p.innerHTML="<div class=\"empty\">The live catalogue could not be loaded. Please refresh the page.</div>"});
 if("serviceWorker" in navigator) navigator.serviceWorker.getRegistrations().then(rs=>Promise.all(rs.map(r=>r.unregister()))).catch(()=>{});
-refreshUser().catch(e=>{console.error("RETAIL account startup:",e);$("loginBtn").hidden=false;$("accountBtn").hidden=true;});$("loginBtn").hidden=false;$("accountBtn").hidden=true;});
+refreshUser().catch(e=>{console.error("RETAIL account startup:",e);$("loginBtn").hidden=false;$("accountBtn").hidden=true;});$("loginBtn").hidden=false;$("accountBtn").hidden=true;
