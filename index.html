@@ -11,4 +11,42 @@
 <footer><b>RETAIL</b><span>Cash on Delivery only</span></footer>
 </main>
 <dialog id="modal"><form method="dialog" class="modalbox"><button class="close" aria-label="Close">×</button><div id="modalBody"></div></form></dialog>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="app.js"></script></body></html>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="app.js"></script>
+<script>
+/* Independent login fallback: keeps the Login button usable even if app.js fails to bind its handlers. */
+(function(){
+  const btn=document.getElementById("loginBtn"), dlg=document.getElementById("modal"), body=document.getElementById("modalBody");
+  if(!btn||!dlg||!body)return;
+  btn.addEventListener("click",function(ev){
+    ev.preventDefault();ev.stopImmediatePropagation();
+    body.innerHTML='<h2>RETAIL Login</h2><p class="notice">Login to place COD orders, or create your account.</p><label>Email</label><input id="fallbackEmail" type="email" autocomplete="email" placeholder="you@example.com"><label>Password</label><input id="fallbackPassword" type="password" minlength="6" autocomplete="current-password" placeholder="At least 6 characters"><label>Name (new account only)</label><input id="fallbackName" autocomplete="name" placeholder="Your full name"><label>Mobile (new account only)</label><input id="fallbackPhone" inputmode="tel" placeholder="10-digit mobile"><button class="primary wide" id="fallbackLogin" type="button">Login</button><button class="dash wide" id="fallbackSignup" type="button">Create new account</button><p id="fallbackMsg" role="status" aria-live="polite"></p>';
+    dlg.showModal();
+    const msg=document.getElementById("fallbackMsg");
+    async function run(mode){
+      const email=document.getElementById("fallbackEmail").value.trim(),password=document.getElementById("fallbackPassword").value;
+      if(!window.supabase){msg.textContent="Login service did not load. Check your internet, then refresh.";return;}
+      if(!email||password.length<6){msg.textContent="Enter a valid email and password of at least 6 characters.";return;}
+      const login=document.getElementById("fallbackLogin"),signup=document.getElementById("fallbackSignup");
+      login.disabled=signup.disabled=true;msg.textContent="Connecting…";
+      try{
+        const client=window.supabase.createClient("https://oebapdfkaumpmwdblqbv.supabase.co","sb_publishable_wmNek6qB6MCiPIJzueJhVQ-7-6d42yl");
+        let result;
+        if(mode==="login") result=await client.auth.signInWithPassword({email,password});
+        else result=await client.auth.signUp({email,password,options:{data:{full_name:document.getElementById("fallbackName").value.trim(),phone:document.getElementById("fallbackPhone").value.trim()}}});
+        if(result.error){msg.textContent=result.error.message;return;}
+        if(mode==="signup"){
+          if(!result.data.session){msg.textContent="Account created. Check your email for a verification link, verify it, then return and Login.";return;}
+          const u=result.data.user;
+          const p=await client.from("profiles").upsert({id:u.id,full_name:document.getElementById("fallbackName").value.trim()||email.split("@")[0],phone:document.getElementById("fallbackPhone").value.trim()||null,role:"customer"});
+          if(p.error){msg.textContent="Account created but profile setup failed: "+p.error.message;return;}
+        }
+        msg.textContent="Login successful. Loading RETAIL…";location.reload();
+      }catch(err){msg.textContent=err&&err.message?err.message:"Could not connect. Please try again.";}
+      finally{login.disabled=signup.disabled=false;}
+    }
+    document.getElementById("fallbackLogin").onclick=()=>run("login");
+    document.getElementById("fallbackSignup").onclick=()=>run("signup");
+  },true);
+})();
+</script>
+</body></html>
