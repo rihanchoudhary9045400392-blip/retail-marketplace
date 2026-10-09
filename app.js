@@ -5,7 +5,7 @@ const $=id=>document.getElementById(id), money=n=>"₹"+Number(n||0).toLocaleStr
 let products=[],categories=[],cart=JSON.parse(localStorage.getItem("retail_cart")||"[]"),active="All",user=null,profile=null;
 const sample=[];
 function esc(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
-function modal(h){$("modalBody").innerHTML=h;$("modal").showModal()}
+function modal(h){$("modalBody").innerHTML=h;/* The modal is wrapped in a method=dialog form. Prevent dashboard/action buttons from accidentally submitting and closing it. */$("modalBody").querySelectorAll("button:not(.close)").forEach(b=>{if(!b.hasAttribute("type"))b.type="button"});$("modal").showModal()}
 function closeModal(){if($("modal").open)$("modal").close()}
 function syncAccountButtons(){ $("loginBtn").hidden=!!user; $("accountBtn").hidden=!user; const a=$("adminNavBtn"); if(a)a.hidden=!(user&&profile?.role==="admin"); }
 function off(p){let m=Number(p.mrp||p.price||0),s=Number(p.sale_price||p.price||0);return m>s?Math.round((m-s)*100/m):0}
