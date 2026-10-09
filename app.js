@@ -58,8 +58,38 @@ async function load(){
 }
 async function refreshUser(){let r=await db.auth.getUser();user=r.data.user||null;if(user){let p=await db.from("profiles").select("*").eq("id",user.id).maybeSingle();profile=p.data||null;if(!profile){let meta=user.user_metadata||{};let created=await db.from("profiles").insert({id:user.id,full_name:meta.full_name||user.email.split("@")[0],phone:meta.phone||null});if(!created.error){let again=await db.from("profiles").select("*").eq("id",user.id).maybeSingle();profile=again.data||null}}$("loginBtn").hidden=true;$("accountBtn").hidden=false}else{$("loginBtn").hidden=false;$("accountBtn").hidden=true}}
 async function auth(){
- modal(`<h2>RETAIL account</h2><p class="notice">Login is required to place and track orders.</p><label>Email</label><input id="email" type="email" placeholder="you@example.com"><label>Password</label><input id="password" type="password" minlength="6" placeholder="Minimum 6 characters"><label>Name (for new account)</label><input id="fullName" placeholder="Your name"><label>Mobile</label><input id="phone" inputmode="tel" placeholder="10-digit mobile"><button class="primary wide" id="authGo" type="button">Login / Create account</button><p id="authMsg"></p>`);
- $("authGo").onclick=async()=>{let email=$("email").value.trim(),password=$("password").value,n=$("fullName").value.trim(),ph=$("phone").value.trim(),m=$("authMsg");if(!email||password.length<6){m.textContent="Enter valid email and 6+ character password.";return}let r=await db.auth.signInWithPassword({email,password});if(r.error){r=await db.auth.signUp({email,password,options:{data:{full_name:n,phone:ph}}});if(r.error){m.textContent=r.error.message;return}if(r.data?.user){if(r.data.session){await db.from("profiles").upsert({id:r.data.user.id,full_name:n||email.split("@")[0],phone:ph||null,role:"customer"});await refreshUser();closeModal();toast("Account created & logged in ✓");account();return}m.textContent="Account created. Email verification required. Check your email, verify it, then tap Login again.";return}}if(r.error){m.textContent=r.error.message;return}await refreshUser();closeModal();toast("Logged in ✓");account()}
+ try{
+  if(!window.supabase||!db){alert("RETAIL login service could not load. Refresh the page and try again.");return;}
+  modal(`<h2>RETAIL account</h2><p class="notice">Login is required to place and track orders.</p><label>Email</label><input id="email" type="email" autocomplete="email" placeholder="you@example.com"><label>Password</label><input id="password" type="password" autocomplete="current-password" minlength="6" placeholder="Minimum 6 characters"><label>Name (for new account)</label><input id="fullName" autocomplete="name" placeholder="Your name"><label>Mobile</label><input id="phone" inputmode="tel" autocomplete="tel" placeholder="10-digit mobile"><button class="primary wide" id="authGo" type="button">Login / Create account</button><p id="authMsg" role="status" aria-live="polite"></p>`);
+  const go=$("authGo");
+  if(!go)throw new Error("Login form did not open correctly.");
+  go.onclick=async()=>{
+   const email=$("email").value.trim(),password=$("password").value,n=$("fullName").value.trim(),ph=$("phone").value.trim(),m=$("authMsg");
+   if(!email||password.length<6){m.textContent="Enter a valid email and a password of at least 6 characters.";return;}
+   go.disabled=true;go.textContent="Please wait…";m.textContent="Connecting securely…";
+   try{
+    let r=await db.auth.signInWithPassword({email,password});
+    if(!r.error){
+     await refreshUser();closeModal();toast("Logged in ✓");account();return;
+    }
+    const loginError=r.error;
+    if(!/invalid login credentials|email not confirmed|user not found/i.test(loginError.message||"")){
+     m.textContent=loginError.message||"Login failed. Please try again.";return;
+    }
+    if(/email not confirmed/i.test(loginError.message||"")){
+     m.textContent="Please verify your email from the confirmation message, then log in again.";return;
+    }
+    r=await db.auth.signUp({email,password,options:{data:{full_name:n,phone:ph}}});
+    if(r.error){m.textContent=(/already registered|already exists/i.test(r.error.message||""))?"This email already has an account. Check your password or use Forgot Password in Supabase.":r.error.message;return;}
+    if(r.data?.session){
+     await db.from("profiles").upsert({id:r.data.user.id,full_name:n||email.split("@")[0],phone:ph||null,role:"customer"});
+     await refreshUser();closeModal();toast("Account created & logged in ✓");account();return;
+    }
+    m.textContent="Account created. Check your email for a verification link, verify it, then return here and log in.";
+   }catch(err){console.error("RETAIL auth action failed:",err);m.textContent=err?.message||"Could not connect. Check your internet and try again.";}
+   finally{go.disabled=false;go.textContent="Login / Create account";}
+  };
+ }catch(err){console.error("RETAIL auth form failed:",err);alert("Could not open RETAIL login. Please refresh the page and try again.");}
 }
 async function account(){
  if(!user){auth();return}
@@ -103,6 +133,6 @@ async function adminPanel(){
 async function adminSellers(){let r=await db.from("seller_profiles").select("*").order("created_at",{ascending:false});$("adminBody").innerHTML=(r.data||[]).map(s=>`<div class="adminrow"><span><b>${esc(s.store_name)}</b><br>${s.status} · ${s.commission_percent}%</span><span><button data-as="${s.user_id}" data-st="approved">Approve</button><button data-as="${s.user_id}" data-st="rejected" class="danger">Reject</button></span></div>`).join("")||"<p>No seller applications.</p>";document.querySelectorAll("[data-as]").forEach(b=>b.onclick=async()=>{let x=await db.from("seller_profiles").update({status:b.dataset.st}).eq("user_id",b.dataset.as);if(x.error)toast(x.error.message);else adminSellers()})}
 async function adminProducts(){let r=await db.from("products").select("id,title,sale_price,stock,status,seller_id,profiles:seller_id(full_name),categories:category_id(name)").order("created_at",{ascending:false});$("adminBody").innerHTML=`<button class="primary" id="adminAdd">Add product</button>`+(r.data||[]).map(p=>`<div class="adminrow"><span><b>${esc(p.title)}</b><br>${money(p.sale_price??0)} · ${p.stock} · ${p.status} · ${esc(p.profiles?.full_name||"")}</span><span><button data-ap="${p.id}">Edit</button><button data-adp="${p.id}" class="danger">Delete</button></span></div>`).join("");$("adminAdd").onclick=()=>productForm();document.querySelectorAll("[data-ap]").forEach(b=>b.onclick=()=>productForm(b.dataset.ap));document.querySelectorAll("[data-adp]").forEach(b=>b.onclick=async()=>{if(confirm("Delete product?")){await db.from("products").delete().eq("id",b.dataset.adp);adminProducts()}})}
 async function adminOrders(){let r=await db.from("orders").select("id,order_number,status,payment_method,payment_status,subtotal,delivery_address,created_at,order_items(product_title,quantity)").order("created_at",{ascending:false});$("adminBody").innerHTML=(r.data||[]).map(o=>`<div class="order"><b>${esc(o.order_number)}</b> · ${money(o.subtotal)} · COD<br><small>${esc(o.delivery_address?.name||"")} · ${esc(o.delivery_address?.phone||"")} · ${esc(o.delivery_address?.address||"")}</small><select data-os="${o.id}"><option ${o.status==="placed"?"selected":""}>placed</option><option ${o.status==="confirmed"?"selected":""}>confirmed</option><option ${o.status==="packed"?"selected":""}>packed</option><option ${o.status==="shipped"?"selected":""}>shipped</option><option ${o.status==="delivered"?"selected":""}>delivered</option><option ${o.status==="cancelled"?"selected":""}>cancelled</option></select></div>`).join("")||"<p>No orders.</p>";document.querySelectorAll("[data-os]").forEach(s=>s.onchange=async()=>{let x=await db.from("orders").update({status:s.value}).eq("id",s.dataset.os);if(x.error)toast(x.error.message)})}
-$("searchBtn").onclick=render;$("search").oninput=render;$("shopNow").onclick=()=>$("products").scrollIntoView({behavior:"smooth"});$("cats").onclick=e=>{let b=e.target.closest("[data-cat]");if(b){active=b.dataset.cat;renderCats();render()}};$("loginBtn").onclick=auth;$("accountBtn").onclick=account;$("cartBtn").onclick=cartModal;
+$("searchBtn").onclick=render;$("search").oninput=render;$("shopNow").onclick=()=>$("products").scrollIntoView({behavior:"smooth"});$("cats").onclick=e=>{let b=e.target.closest("[data-cat]");if(b){active=b.dataset.cat;renderCats();render()}};$("loginBtn").addEventListener("click",e=>{e.preventDefault();auth().catch(err=>{console.error("RETAIL login click failed:",err);alert("Login could not open. Refresh RETAIL and try again.");});});$("accountBtn").addEventListener("click",e=>{e.preventDefault();account().catch(err=>{console.error("RETAIL account failed:",err);toast("Could not open account. Please refresh.");});});$("cartBtn").addEventListener("click",e=>{e.preventDefault();cartModal();});
 $("modal").addEventListener("click",e=>{if(e.target===$("modal"))closeModal()});
 load().catch(e=>{console.error("RETAIL startup:",e);const n=$("resultCount");if(n)n.textContent="Catalogue unavailable";const p=$("products");if(p)p.innerHTML="<div class=\"empty\">The live catalogue could not be loaded. Please refresh the page.</div>"});refreshUser().catch(e=>console.error("RETAIL account startup:",e));if("serviceWorker"in navigator)navigator.serviceWorker.register("./sw.js").catch(()=>{});
