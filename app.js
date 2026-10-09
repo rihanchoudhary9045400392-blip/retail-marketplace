@@ -70,7 +70,9 @@ async function auth(){
    try{
     let r=await db.auth.signInWithPassword({email,password});
     if(!r.error){
-     await refreshUser(r.data.user);closeModal();$("loginBtn").hidden=true;$("accountBtn").hidden=false;toast("Logged in ✓");await account();return;
+     await refreshUser(r.data.user);
+     if(!user){m.textContent="Login returned without an active session. Please refresh and try again.";return;}
+     closeModal();$("loginBtn").hidden=true;$("accountBtn").hidden=false;toast("Logged in ✓");await account();return;
     }
     const loginError=r.error;
     if(!/invalid login credentials|email not confirmed|user not found/i.test(loginError.message||"")){
@@ -136,4 +138,9 @@ async function adminOrders(){let r=await db.from("orders").select("id,order_numb
 $("searchBtn").onclick=render;$("search").oninput=render;$("shopNow").onclick=()=>$("products").scrollIntoView({behavior:"smooth"});$("cats").onclick=e=>{let b=e.target.closest("[data-cat]");if(b){active=b.dataset.cat;renderCats();render()}};$("loginBtn").addEventListener("click",e=>{e.preventDefault();auth().catch(err=>{console.error("RETAIL login click failed:",err);alert("Login could not open. Refresh RETAIL and try again.");});});$("accountBtn").addEventListener("click",e=>{e.preventDefault();account().catch(err=>{console.error("RETAIL account failed:",err);toast("Could not open account. Please refresh.");});});$("cartBtn").addEventListener("click",e=>{e.preventDefault();cartModal();});
 $("modal").addEventListener("click",e=>{if(e.target===$("modal"))closeModal()});
 db.auth.onAuthStateChange((event,session)=>{if(session?.user){user=session.user;$("loginBtn").hidden=true;$("accountBtn").hidden=false;refreshUser(session.user).catch(e=>console.error("RETAIL auth-state profile:",e));}else if(event==="SIGNED_OUT"){user=null;profile=null;$("loginBtn").hidden=false;$("accountBtn").hidden=true;}});
-load().catch(e=>{console.error("RETAIL startup:",e);const n=$("resultCount");if(n)n.textContent="Catalogue unavailable";const p=$("products");if(p)p.innerHTML="<div class=\"empty\">The live catalogue could not be loaded. Please refresh the page.</div>"});refreshUser().catch(e=>console.error("RETAIL account startup:",e));if("serviceWorker"in navigator)navigator.serviceWorker.register("./sw.js").catch(()=>{});
+load().catch(e=>{console.error("RETAIL startup:",e);const n=$("resultCount");if(n)n.textContent="Catalogue unavailable";const p=$("products");if(p)p.innerHTML="<div class=\"empty\">The live catalogue could not be loaded. Please refresh the page.</div>"});
+// Remove old service workers so stale login code cannot keep running.
+if("serviceWorker" in navigator) navigator.serviceWorker.getRegistrations().then(rs=>Promise.all(rs.map(r=>r.unregister()))).catch(()=>{});
+// Synchronize the visible header with Supabase session changes.
+db.auth.onAuthStateChange((_event, session)=>{user=session?.user||null;if(!user){profile=null;$("loginBtn").hidden=false;$("accountBtn").hidden=true;}else{refreshUser(session.user).catch(err=>console.error("RETAIL session refresh:",err));}});
+refreshUser().catch(e=>{console.error("RETAIL account startup:",e);$("loginBtn").hidden=false;$("accountBtn").hidden=true;});
