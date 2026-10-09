@@ -26,8 +26,9 @@ function addToCart(id,qty=1){let p=getP(id);if(!p||String(id).startsWith("sample
 function toast(t){let x=document.createElement("div");x.className="toast";x.textContent=t;document.body.appendChild(x);setTimeout(()=>x.remove(),1800)}
 async function load(){
  const list=$("products"), count=$("resultCount");
- if(count)count.textContent="Loading products…";
- if(list)list.innerHTML="<div class='empty'>Connecting to RETAIL catalogue…</div>";
+ /* Render a safe fallback immediately so a slow database never leaves the screen spinning. */
+ if(!products.length){products=[...sample];renderCats();render();}
+ if(count)count.textContent="Connecting to live catalogue…";
  try{
   const requests=Promise.all([
    db.from("categories").select("id,name,slug").order("name"),
