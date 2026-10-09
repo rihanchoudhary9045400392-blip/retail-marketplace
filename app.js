@@ -32,7 +32,7 @@ async function load(){
  try{
   const requests=Promise.all([
    db.from("categories").select("id,name,slug").order("name"),
-   db.from("products").select("id,title,description,price,mrp,sale_price,brand,stock,image_url,status,seller_id,category_id,categories:category_id(name)").eq("status","active").order("created_at",{ascending:false}).limit(100)
+   db.from("products").select("id,title,description,price,mrp,sale_price,brand,stock,image_url,status,seller_id,category_id").eq("status","active").order("created_at",{ascending:false}).limit(100)
   ]);
   const timeout=new Promise((_,reject)=>setTimeout(()=>reject(new Error("The catalogue database did not respond in time.")),12000));
   const [c,p]=await Promise.race([requests,timeout]);
@@ -43,7 +43,7 @@ async function load(){
    if(count)count.textContent="Catalogue connection issue";
    if(list)list.innerHTML="<div class='empty'>Live catalogue could not load. Check the Supabase database settings and product-table permissions. A sample listing is shown below and cannot be ordered.</div>";
   }else{
-   products=(p.data||[]).map(x=>({...x,category:x.categories?.name||"Other",seller_name:"Marketplace seller"}));
+   products=(p.data||[]).map(x=>({...x,category:categories.find(k=>k.id===x.category_id)?.name||"Other",seller_name:"Marketplace seller"}));
    if(!products.length){
     products=[{id:"nilzan-info",title:"Nilzan Liquid 100 ml",description:"Veterinary product listing — seller must confirm availability and details before purchase.",category:"Veterinary",price:95,mrp:98,sale_price:95,brand:"Nilzan",stock:0,emoji:"🧴",seller_name:"Listing pending"}];
    }
