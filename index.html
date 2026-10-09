@@ -29,7 +29,7 @@
       const login=document.getElementById("fallbackLogin"),signup=document.getElementById("fallbackSignup");
       login.disabled=signup.disabled=true;msg.textContent="Connecting…";
       try{
-        const client=window.supabase.createClient("https://oebapdfkaumpmwdblqbv.supabase.co","sb_publishable_wmNek6qB6MCiPIJzueJhVQ-7-6d42yl");
+        const client=window.supabase.createClient("https://oebapdfkaumpmwdblqbv.supabase.co","sb_publishable_wmNek6qB6MCiPIJzueJhVQ_7-6d42yl");
         let result;
         if(mode==="login") result=await client.auth.signInWithPassword({email,password});
         else result=await client.auth.signUp({email,password,options:{data:{full_name:document.getElementById("fallbackName").value.trim(),phone:document.getElementById("fallbackPhone").value.trim()}}});
