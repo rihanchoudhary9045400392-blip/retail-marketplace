@@ -25,11 +25,37 @@ function getP(id){return products.find(p=>String(p.id)===String(id))}
 function addToCart(id,qty=1){let p=getP(id);if(!p||String(id).startsWith("sample")){modal("<h2>Demo product</h2><p>Login and use the live catalogue to place a real COD order.</p>");return}let x=cart.find(i=>i.id===id);if(x)x.qty=Math.min(x.qty+qty,Number(p.stock||99));else cart.push({id:p.id,title:p.title,price:price(p),image_url:p.image_url,seller_id:p.seller_id,qty});saveCart();toast("Added to cart ✓")}
 function toast(t){let x=document.createElement("div");x.className="toast";x.textContent=t;document.body.appendChild(x);setTimeout(()=>x.remove(),1800)}
 async function load(){
- const [c,p]=await Promise.all([db.from("categories").select("id,name,slug").order("name"),db.from("products").select("id,title,description,price,mrp,sale_price,brand,stock,image_url,status,seller_id,category_id,profiles:seller_id(full_name),categories:category_id(name)").eq("status","active").order("created_at",{ascending:false}).limit(100)]);
- if(c.data)categories=c.data;
- if(p.error){console.error(p.error);products=[...sample]}else products=(p.data||[]).map(x=>({...x,category:x.categories?.name||"Other",seller_name:x.profiles?.full_name||"Verified seller"}));
- if(!products.length)products=[...sample];
- renderCats();render();
+ const list=$("products"), count=$("resultCount");
+ if(count)count.textContent="Loading products…";
+ if(list)list.innerHTML="<div class='empty'>Connecting to RETAIL catalogue…</div>";
+ try{
+  const requests=Promise.all([
+   db.from("categories").select("id,name,slug").order("name"),
+   db.from("products").select("id,title,description,price,mrp,sale_price,brand,stock,image_url,status,seller_id,category_id,categories:category_id(name)").eq("status","active").order("created_at",{ascending:false}).limit(100)
+  ]);
+  const timeout=new Promise((_,reject)=>setTimeout(()=>reject(new Error("The catalogue database did not respond in time.")),12000));
+  const [c,p]=await Promise.race([requests,timeout]);
+  if(c.error)console.warn("RETAIL categories:",c.error.message); else categories=c.data||[];
+  if(p.error){
+   console.error("RETAIL products:",p.error);
+   products=[{id:"nilzan-info",title:"Nilzan Liquid 100 ml",description:"Veterinary product listing — seller must confirm availability and details before purchase.",category:"Veterinary",price:95,mrp:98,sale_price:95,brand:"Nilzan",stock:0,emoji:"🧴",seller_name:"Listing pending"}];
+   if(count)count.textContent="Catalogue connection issue";
+   if(list)list.innerHTML="<div class='empty'>Live catalogue could not load. Check the Supabase database settings and product-table permissions. A sample listing is shown below and cannot be ordered.</div>";
+  }else{
+   products=(p.data||[]).map(x=>({...x,category:x.categories?.name||"Other",seller_name:"Marketplace seller"}));
+   if(!products.length){
+    products=[{id:"nilzan-info",title:"Nilzan Liquid 100 ml",description:"Veterinary product listing — seller must confirm availability and details before purchase.",category:"Veterinary",price:95,mrp:98,sale_price:95,brand:"Nilzan",stock:0,emoji:"🧴",seller_name:"Listing pending"}];
+   }
+  }
+  renderCats();render();
+  if(p.error && count)count.textContent="Database error";
+ }catch(e){
+  console.error("RETAIL catalogue load failed:",e);
+  products=[{id:"nilzan-info",title:"Nilzan Liquid 100 ml",description:"Listing pending; this is not a live, orderable product.",category:"Veterinary",price:95,mrp:98,sale_price:95,brand:"Nilzan",stock:0,emoji:"🧴",seller_name:"Listing pending"}];
+  renderCats();render();
+  if(count)count.textContent="Could not connect";
+  if(list)list.insertAdjacentHTML("afterbegin","<div class='empty'>Could not connect to the live catalogue. Please check the database configuration.</div>");
+ }
 }
 async function refreshUser(){let r=await db.auth.getUser();user=r.data.user||null;if(user){let p=await db.from("profiles").select("*").eq("id",user.id).maybeSingle();profile=p.data||null;$("loginBtn").hidden=true;$("accountBtn").hidden=false}else{$("loginBtn").hidden=false;$("accountBtn").hidden=true}}
 async function auth(){
