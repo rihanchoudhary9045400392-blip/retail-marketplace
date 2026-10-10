@@ -1,3 +1,4 @@
+# Rebuild trigger: create a fresh Retail Android APK.
 name: Build Retail APK
 
 on:
