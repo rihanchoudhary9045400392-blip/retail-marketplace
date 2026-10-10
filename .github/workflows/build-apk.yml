@@ -1,0 +1,78 @@
+name: Build Retail APK
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - ".github/workflows/build-apk.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  build-apk:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Retail
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Create Capacitor Android wrapper
+        run: |
+          npm init -y
+          npm install @capacitor/core@^7 @capacitor/android@^7 @capacitor/cli@^7
+          mkdir -p www
+          printf '<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"></head><body>Opening Retail…</body></html>' > www/index.html
+          cat > capacitor.config.json <<'EOF'
+          {
+            "appId": "com.retail.marketplace",
+            "appName": "Retail",
+            "webDir": "www",
+            "server": {
+              "url": "https://retail-marketplace-zkwf.vercel.app",
+              "cleartext": false,
+              "allowNavigation": ["retail-marketplace-zkwf.vercel.app"]
+            }
+          }
+          EOF
+          npx cap add android
+          npx cap sync android
+
+      - name: Build installable APK
+        run: |
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleDebug
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Retail-Android-APK
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Publish APK download release
+        uses: ncipollo/release-action@v1
+        with:
+          tag: retail-apk
+          name: Retail Android APK
+          body: "Installable Android APK for the Retail website wrapper. Download app-debug.apk and install it on your Android phone."
+          artifacts: android/app/build/outputs/apk/debug/app-debug.apk
+          allowUpdates: true
+          replacesArtifacts: true
+          makeLatest: true
+          token: ${{ secrets.GITHUB_TOKEN }}
