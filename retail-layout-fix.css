@@ -2,7 +2,12 @@
 .top #cartBtn {
   margin-top: 8px;
 }
+
+/* Keep the header clear of the top edge/status bar on phones and installed app */
 @media (max-width: 560px) {
+  .top {
+    padding-top: calc(18px + env(safe-area-inset-top, 0px));
+  }
   .top #loginBtn,
   .top #cartBtn {
     position: relative;
