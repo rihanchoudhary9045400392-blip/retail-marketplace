@@ -1,1 +1,1 @@
-{"name":"RETAIL Marketplace","short_name":"Retail","start_url":"/","display":"standalone","background_color":"#ffffff","theme_color":"#0868ed","icons":[{"src":"retail-logo.svg","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}]}
+{"name":"RETAIL Marketplace","short_name":"Retail","start_url":"/","display":"standalone","background_color":"#ffffff","theme_color":"#0868ed","icons":[{"src":"retail-logo.svg?v=4","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}]}
