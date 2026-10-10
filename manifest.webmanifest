@@ -1,1 +1,1 @@
-{"name":"RETAIL Marketplace","short_name":"RETAIL","start_url":"/","display":"standalone","background_color":"#f5f7f4","theme_color":"#173c2c","icons":[]}
+{"name":"RETAIL Marketplace","short_name":"Retail","start_url":"/","display":"standalone","background_color":"#ffffff","theme_color":"#0868ed","icons":[{"src":"retail-logo.svg","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}]}
