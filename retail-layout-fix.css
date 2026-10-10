@@ -1,0 +1,11 @@
+.top #loginBtn,
+.top #cartBtn {
+  margin-top: 8px;
+}
+@media (max-width: 560px) {
+  .top #loginBtn,
+  .top #cartBtn {
+    position: relative;
+    top: 6px;
+  }
+}
