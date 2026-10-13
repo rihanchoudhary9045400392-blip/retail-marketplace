@@ -256,3 +256,33 @@ async function adminOrders(){
   await adminOrders();
  });
 }
+
+
+// RETAIL startup and main navigation wiring.
+(function initRetailApp(){
+  function bind(id,event,handler){
+    const el=document.getElementById(id);
+    if(el)el.addEventListener(event,handler);
+  }
+  bind("loginBtn","click",()=>auth());
+  bind("accountBtn","click",()=>account());
+  bind("adminNavBtn","click",()=>adminPanel());
+  bind("cartBtn","click",()=>cartModal());
+  bind("searchBtn","click",()=>render());
+  bind("search","input",()=>render());
+  bind("shopNowBottom","click",()=>{showCatalogue(true);document.getElementById("catalogHeading")?.scrollIntoView({behavior:"smooth"});});
+  const catsEl=document.getElementById("cats");
+  if(catsEl)catsEl.addEventListener("click",e=>{
+    const btn=e.target.closest("[data-cat]");
+    if(!btn)return;
+    active=btn.dataset.cat||"All";
+    renderCats();
+    render();
+  });
+  saveCart();
+  refreshUser().catch(err=>console.warn("RETAIL initial account check failed:",err)).finally(()=>{
+    syncAccountButtons();
+    startProductAlerts();
+  });
+  load();
+})();
