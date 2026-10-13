@@ -1,6 +1,7 @@
 const SUPABASE_URL="https://oebapdfkaumpmwdblqbv.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY="sb_publishable_wmNek6qB6MCiPIJzueJhVQ_7-6d42yl";
 const db=window.supabase.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY);
+const incomingReferral=new URLSearchParams(location.search).get("ref");if(incomingReferral&&/^[A-Z0-9]{6,12}$/i.test(incomingReferral)){try{localStorage.setItem("retail_referral_code",incomingReferral.toUpperCase())}catch(e){}}
 const $=id=>document.getElementById(id), money=n=>"₹"+Number(n||0).toLocaleString("en-IN");
 let products=[],categories=[],allCategories=[],cart=JSON.parse(localStorage.getItem("retail_cart")||"[]"),active="All",user=null,profile=null;
 const sample=[];
@@ -83,7 +84,7 @@ async function auth(){
     if(/email not confirmed/i.test(loginError.message||"")){
      m.textContent="Please verify your email from the confirmation message, then log in again.";return;
     }
-    r=await db.auth.signUp({email,password,options:{data:{full_name:n,phone:ph}}});
+    r=await db.auth.signUp({email,password,options:{data:{full_name:n,phone:ph,referral_code:(localStorage.getItem("retail_referral_code")||"")}}});
     if(r.error){m.textContent=(/already registered|already exists/i.test(r.error.message||""))?"This email already has an account. Check your password or use Forgot Password in Supabase.":r.error.message;return;}
     if(r.data?.session){
      await db.from("profiles").upsert({id:r.data.user.id,full_name:n||email.split("@")[0],phone:ph||null,role:"customer"});
@@ -97,7 +98,21 @@ async function auth(){
 }
 async function account(){
  if(!user){auth();return}
- let isAdmin=profile?.role==="admin", html=`<h2>My RETAIL account</h2><p><b>${esc(profile?.full_name||user.email)}</b><br>${esc(profile?.phone||"")}</p><div class="dashgrid"><button class="dash" id="ordersBtn">My Orders</button><button class="dash" id="sellerBtn">Seller Dashboard</button>${isAdmin?'<button class="dash" id="adminBtn">Admin Panel</button>':""}<button class="dash danger" id="logoutBtn">Logout</button></div><div id="dashBody"></div>`;modal(html);$("ordersBtn").onclick=myOrders;$("sellerBtn").onclick=sellerPanel;if(isAdmin)$("adminBtn").onclick=adminPanel;$("logoutBtn").onclick=async()=>{await db.auth.signOut();profile=null;user=null;syncAccountButtons();closeModal();await refreshUser();toast("Logged out")}}
+ let isAdmin=profile?.role==="admin", html=`<h2>My RETAIL account</h2><p><b>${esc(profile?.full_name||user.email)}</b><br>${esc(profile?.phone||"")}</p><div class="dashgrid"><button class="dash" id="ordersBtn">My Orders</button><button class="dash" id="sellerBtn">Seller Dashboard</button>${isAdmin?'<button class="dash" id="adminBtn">Admin Panel</button>':""}<button class="dash danger" id="logoutBtn">Logout</button></div><div id="dashBody"></div>`;modal(html);$("ordersBtn").onclick=myOrders;$("sellerBtn").onclick=sellerPanel;$("coinsBtn").onclick=rewardsPanel;if(isAdmin)$("adminBtn").onclick=adminPanel;$("logoutBtn").onclick=async()=>{await db.auth.signOut();profile=null;user=null;syncAccountButtons();closeModal();await refreshUser();toast("Logged out")}}
+async function rewardsPanel(){
+ if(!user){auth();return}
+ const body=$("dashBody");
+ body.innerHTML="<p>Loading your coins…</p>";
+ const result=await db.from("profiles").select("referral_code,coins_balance").eq("id",user.id).maybeSingle();
+ if(result.error||!result.data){body.innerHTML="<p class='notice'>Could not load coins: "+esc(result.error?.message||"Profile unavailable")+"</p>";return}
+ profile={...(profile||{}),...result.data};
+ const code=result.data.referral_code||"";
+ const link=location.origin+location.pathname+"?ref="+encodeURIComponent(code);
+ const ledger=await db.from("coin_transactions").select("amount,reason,created_at").eq("user_id",user.id).order("created_at",{ascending:false}).limit(10);
+ body.innerHTML=`<section class="notice"><h3>🪙 RETAIL Coins</h3><p style="font-size:28px;font-weight:800;margin:6px 0">${Number(result.data.coins_balance||0)} coins</p><p>Earn 10 coins when a new user successfully registers through your invite link. Listing one product costs 50 coins.</p></section><label>Your referral link</label><input id="referralLink" readonly value="${esc(link)}"><button class="primary wide" id="copyReferral" type="button">Copy Invite Link</button><button class="dash wide" id="shareReferral" type="button">Share Link</button><h3>Recent coin activity</h3>${(ledger.data||[]).map(x=>`<div class="adminrow"><span>${x.reason==="referral_signup"?"Successful referral":x.reason==="product_listing"?"Product listing":"Coin adjustment"}<br><small>${new Date(x.created_at).toLocaleString("en-IN")}</small></span><b>${x.amount>0?"+":""}${x.amount} coins</b></div>`).join("")||"<p>No coin activity yet.</p>"}`;
+ $("copyReferral").onclick=async()=>{try{await navigator.clipboard.writeText(link);toast("Invite link copied ✓")}catch(e){$("referralLink").focus();$("referralLink").select();toast("Select and copy your invite link")}};
+ $("shareReferral").onclick=async()=>{if(navigator.share){try{await navigator.share({title:"Join RETAIL Marketplace",text:"Join RETAIL using my invite link:",url:link})}catch(e){}}else{try{await navigator.clipboard.writeText(link);toast("Invite link copied ✓")}catch(e){$("referralLink").focus();$("referralLink").select()}}};
+}
 async function myOrders(){
  if(!user)return auth();let r=await db.from("orders").select("id,order_number,status,payment_method,payment_status,subtotal,platform_commission,delivery_address,created_at,order_items(product_title,unit_price,quantity,seller_amount,commission_amount)").eq("customer_id",user.id).order("created_at",{ascending:false});
  let h="<h3>My Orders</h3>"+((r.data||[]).map(o=>`<div class="order"><b>${esc(o.order_number)}</b><span class="status">${esc(o.status)}</span><div>${new Date(o.created_at).toLocaleString("en-IN")} · COD · ${money(o.subtotal)}</div><small>${(o.order_items||[]).map(i=>esc(i.product_title)+" × "+i.quantity).join(", ")}</small></div>`).join("")||"<p>No orders yet.</p>");$("dashBody").innerHTML=h}
