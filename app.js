@@ -98,7 +98,7 @@ async function auth(){
 }
 async function account(){
  if(!user){auth();return}
- let isAdmin=profile?.role==="admin", html=`<h2>My RETAIL account</h2><p><b>${esc(profile?.full_name||user.email)}</b><br>${esc(profile?.phone||"")}</p><div class="dashgrid"><button class="dash" id="ordersBtn">My Orders</button><button class="dash" id="sellerBtn">Seller Dashboard</button>${isAdmin?'<button class="dash" id="adminBtn">Admin Panel</button>':""}<button class="dash danger" id="logoutBtn">Logout</button></div><div id="dashBody"></div>`;modal(html);$("ordersBtn").onclick=myOrders;$("sellerBtn").onclick=sellerPanel;$("coinsBtn").onclick=rewardsPanel;if(isAdmin)$("adminBtn").onclick=adminPanel;$("logoutBtn").onclick=async()=>{await db.auth.signOut();profile=null;user=null;syncAccountButtons();closeModal();await refreshUser();toast("Logged out")}}
+ let isAdmin=profile?.role==="admin", html=`<h2>My RETAIL account</h2><p><b>${esc(profile?.full_name||user.email)}</b><br>${esc(profile?.phone||"")}</p><div class="dashgrid"><button class="dash" id="ordersBtn">My Orders</button><button class="dash" id="sellerBtn">Seller Dashboard</button><button class="dash" id="coinsBtn">🪙 My Coins & Invite</button>${isAdmin?'<button class="dash" id="adminBtn">Admin Panel</button>':""}<button class="dash danger" id="logoutBtn">Logout</button></div><div id="dashBody"></div>`;modal(html);$("ordersBtn").onclick=myOrders;$("sellerBtn").onclick=sellerPanel;$("coinsBtn").onclick=rewardsPanel;if(isAdmin)$("adminBtn").onclick=adminPanel;$("logoutBtn").onclick=async()=>{await db.auth.signOut();profile=null;user=null;syncAccountButtons();closeModal();await refreshUser();toast("Logged out")}}
 async function rewardsPanel(){
  if(!user){auth();return}
  const body=$("dashBody");
