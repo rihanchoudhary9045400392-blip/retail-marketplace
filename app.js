@@ -17,7 +17,7 @@ function render(){
  const q=$("search").value.trim().toLowerCase();
  const shown=products.filter(p=>(active==="All"||p.category===active)&&(!q||[p.title,p.brand,p.category,p.description].join(" ").toLowerCase().includes(q)));
  $("resultCount").textContent=shown.length+" items";
- $("products").innerHTML=shown.map(p=>{const o=off(p);return `<article class="product" data-product="${p.id}"><div class="photo">${p.image_url?`<img src="${esc(p.image_url)}" alt="${esc(p.title)}">`:(p.emoji||"📦")}</div><div class="pbody"><div class="tag">${esc(p.category||"Other")}</div><h3>${esc(p.title)}</h3><div class="prices"><b>${money(price(p))}</b> ${o?`<del>${money(p.mrp)}</del><span class="off">${o}% OFF</span>`:""}</div><div class="seller">Sold by ${esc(p.seller_name||"Marketplace seller")} · Stock ${Number(p.stock??0)}</div><div class="actions"><button class="add" data-add="${p.id}">Add to cart</button><button class="buy" data-buy="${p.id}">Buy Now</button></div></div></article>`}).join("")||"<div class='empty'>No products found.</div>";
+ $("products").innerHTML=shown.map(p=>{const o=off(p);return `<article class="product" data-product="${p.id}"><div class="photo">${p.image_url?`<img src="${esc(p.image_url)}" alt="${esc(p.title)}">`:(p.emoji||"📦")}</div><div class="pbody"><div class="tag">${esc(p.category||"Other")}</div><h3>${esc(p.title)}</h3><div class="prices"><b>${money(price(p))}</b> ${o?`<span class="off">${o}% OFF</span>`:""}</div><div class="seller">Sold by ${esc(p.seller_name||"Marketplace seller")} · Stock ${Number(p.stock??0)}</div><div class="actions"><button class="add" data-add="${p.id}">Add to cart</button><button class="buy" data-buy="${p.id}">Buy Now</button></div></div></article>`}).join("")||"<div class='empty'>No products found.</div>";
  document.querySelectorAll("[data-product]").forEach(x=>x.onclick=e=>{if(!e.target.closest("button"))showProduct(x.dataset.product)});
  document.querySelectorAll("[data-add]").forEach(b=>b.onclick=e=>{e.stopPropagation();addToCart(b.dataset.add)});
  document.querySelectorAll("[data-buy]").forEach(b=>b.onclick=async e=>{e.stopPropagation();let p=getP(b.dataset.buy);if(p)await checkout([{id:p.id,title:p.title,price:price(p),image_url:p.image_url,seller_id:p.seller_id,qty:1}])});
@@ -63,9 +63,23 @@ async function refreshUser(explicitUser=null){try{let r=explicitUser?{data:{user
 async function auth(){
  try{
   if(!window.supabase||!db){alert("RETAIL login service could not load. Refresh the page and try again.");return;}
-  modal(`<h2>RETAIL account</h2><p class="notice">Login is required to place and track orders.</p><label>Email</label><input id="email" type="email" autocomplete="email" placeholder="you@example.com"><label>Password</label><input id="password" type="password" autocomplete="current-password" minlength="6" placeholder="Minimum 6 characters"><label>Name (for new account)</label><input id="fullName" autocomplete="name" placeholder="Your name"><label>Mobile</label><input id="phone" inputmode="tel" autocomplete="tel" placeholder="10-digit mobile"><button class="primary wide" id="authGo" type="button">Login / Create account</button><p id="authMsg" role="status" aria-live="polite"></p>`);
+  modal(`<h2>RETAIL account</h2><p class="notice">Login is required to place and track orders.</p><label>Email</label><input id="email" type="email" autocomplete="email" placeholder="you@example.com"><label>Password</label><input id="password" type="password" autocomplete="current-password" minlength="6" placeholder="Minimum 6 characters"><label>Name (for new account)</label><input id="fullName" autocomplete="name" placeholder="Your name"><label>Mobile</label><input id="phone" inputmode="tel" autocomplete="tel" placeholder="10-digit mobile"><button class="primary wide" id="authGo" type="button">Login / Create account</button><div class="twocol"><button class="dash" id="forgotPass" type="button">Forgot password?</button><button class="dash" id="resendVerify" type="button">Resend verification</button></div><p id="authMsg" role="status" aria-live="polite"></p>`);
   const go=$("authGo");
   if(!go)throw new Error("Login form did not open correctly.");
+  $("forgotPass").onclick=async()=>{
+   const email=$("email").value.trim(),m=$("authMsg");
+   if(!email){m.textContent="Enter your account email first.";return;}
+   m.textContent="Sending password reset link…";
+   const r=await db.auth.resetPasswordForEmail(email,{redirectTo:location.origin+location.pathname});
+   m.textContent=r.error?r.error.message:"If this email has a RETAIL account, a password reset link has been sent. Check inbox and spam.";
+  };
+  $("resendVerify").onclick=async()=>{
+   const email=$("email").value.trim(),m=$("authMsg");
+   if(!email){m.textContent="Enter your account email first.";return;}
+   m.textContent="Sending verification email…";
+   const r=await db.auth.resend({type:"signup",email,options:{emailRedirectTo:location.origin+location.pathname}});
+   m.textContent=r.error?r.error.message:"If this account needs verification, a new confirmation email has been sent. Check inbox and spam.";
+  };
   go.onclick=async()=>{
    const email=$("email").value.trim(),password=$("password").value,n=$("fullName").value.trim(),ph=$("phone").value.trim(),m=$("authMsg");
    if(!email||password.length<6){m.textContent="Enter a valid email and a password of at least 6 characters.";return;}
