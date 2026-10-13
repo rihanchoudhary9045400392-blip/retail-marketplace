@@ -36,5 +36,11 @@
 @media(max-width:650px){.shopping-benefits{grid-template-columns:1fr;gap:9px;margin:22px 0}.shopping-benefits article{padding:14px}.how-retail{align-items:flex-start;flex-direction:column;padding:20px}.hero-perks{gap:7px}.hero-perks span{font-size:11px}}
 
 
-/* Separate second-hand marketplace entry */
-.used-market-promo{display:flex;align-items:center;justify-content:space-between;gap:22px;margin:0 0 28px;padding:25px 28px;background:#fff;border:1px solid #dce6f5;border-left:5px solid #0757d9;border-radius:15px}.used-market-promo h2{font-size:clamp(22px,3vw,30px);margin:7px 0}.used-market-promo p{max-width:700px;color:#647267;line-height:1.65;margin:0}.used-market-link{display:inline-block;white-space:nowrap;padding:13px 17px;border-radius:9px;background:#0757d9;color:white;text-decoration:none;font-weight:800}@media(max-width:620px){.used-market-promo{align-items:flex-start;flex-direction:column;padding:20px}.used-market-link{white-space:normal}}
+/* Compact separate second-hand marketplace link */
+.used-market-promo{display:flex;align-items:center;gap:12px;width:100%;max-width:440px;margin:0 auto 22px;padding:12px 15px;background:#fff;border:1px solid #d8e4f4;border-radius:12px;text-decoration:none;color:#18271f;box-shadow:0 2px 8px rgba(15,45,90,.04);transition:border-color .15s,box-shadow .15s}
+.used-market-promo:hover{border-color:#0757d9;box-shadow:0 4px 14px rgba(15,45,90,.08)}
+.used-market-icon{display:grid;place-items:center;width:39px;height:39px;flex-shrink:0;border-radius:10px;background:#eaf7ef;color:#197a43;font-size:23px}
+.used-market-copy{display:flex;flex:1;min-width:0;flex-direction:column;gap:3px}
+.used-market-copy strong{font-size:15px;font-weight:850;color:#172b22}
+.used-market-copy small{font-size:11px;color:#6b7a70;line-height:1.4}
+.used-market-arrow{font-size:21px;color:#0757d9;font-weight:800}
