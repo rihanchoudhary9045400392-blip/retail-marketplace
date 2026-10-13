@@ -135,8 +135,20 @@ function startProductAlerts(){
  }).subscribe(status=>{if(status==="CHANNEL_ERROR"||status==="TIMED_OUT")console.warn("RETAIL live product alerts connection:",status)});
 }
 async function myOrders(){
- if(!user)return auth();let r=await db.from("orders").select("id,order_number,status,payment_method,payment_status,subtotal,platform_commission,delivery_address,created_at,order_items(product_title,unit_price,quantity,seller_amount,commission_amount)").eq("customer_id",user.id).order("created_at",{ascending:false});
- let h="<h3>My Orders</h3>"+((r.data||[]).map(o=>`<div class="order"><b>${esc(o.order_number)}</b><span class="status">${esc(o.status)}</span><div>${new Date(o.created_at).toLocaleString("en-IN")} · COD · ${money(o.subtotal)}</div><small>${(o.order_items||[]).map(i=>esc(i.product_title)+" × "+i.quantity).join(", ")}</small></div>`).join("")||"<p>No orders yet.</p>");$("dashBody").innerHTML=h}
+ if(!user){auth();return}
+ const body=$("dashBody");
+ body.innerHTML="<h3>My Orders</h3><p>Loading your orders…</p>";
+ const r=await db.from("orders").select("id,order_number,status,payment_method,payment_status,subtotal,platform_commission,delivery_address,created_at,order_items(product_title,unit_price,quantity,seller_amount,commission_amount)").eq("customer_id",user.id).order("created_at",{ascending:false});
+ if(r.error){body.innerHTML="<h3>My Orders</h3><p class='notice'>Orders could not be loaded: "+esc(r.error.message)+"</p><button class='dash' id='ordersRetry' type='button'>Try again</button>";$("ordersRetry").onclick=myOrders;return}
+ const statusInfo={placed:["Pending","Your order has been placed."],pending:["Pending","Your order is waiting for confirmation."],confirmed:["Confirmed","Your order is confirmed."],packed:["Packed","Your order is being prepared."],shipped:["Shipped","Your order is on the way."],delivered:["Delivered","Your order has been delivered."],cancelled:["Cancelled","This order has been cancelled."]};
+ const orders=r.data||[];
+ body.innerHTML="<h3>My Orders</h3>"+(orders.map(o=>{
+  const s=String(o.status||"placed").toLowerCase(),info=statusInfo[s]||[s.charAt(0).toUpperCase()+s.slice(1),"Order status updated."];
+  const tone=s==="delivered"?"#16803c":s==="cancelled"?"#c62828":s==="shipped"?"#0757c9":"#8a5a00";
+  return `<div class="order"><b>${esc(o.order_number)}</b><span class="status" style="display:inline-block;margin-left:8px;padding:4px 9px;border-radius:999px;background:${tone}18;color:${tone};font-weight:700">${s==="delivered"?"✓ ":s==="cancelled"?"✕ ":""}${esc(info[0])}</span><div>${new Date(o.created_at).toLocaleString("en-IN")} · COD · ${money(o.subtotal)}</div><small>${(o.order_items||[]).map(i=>esc(i.product_title)+" × "+i.quantity).join(", ")}</small><p style="margin:7px 0 0;color:#555;font-size:13px">${esc(info[1])}</p></div>`;
+ }).join("")||"<p>No orders yet.</p>")+"<button class='dash wide' id='refreshOrders' type='button'>Refresh order status</button>";
+ $("refreshOrders").onclick=myOrders;
+}
 async function checkout(items=cart){
  if(!user){auth();return}
  if(!items.length){modal("<h2>Cart is empty</h2><p>Add products first.</p>");return}
