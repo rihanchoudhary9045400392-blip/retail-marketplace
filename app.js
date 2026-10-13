@@ -112,7 +112,41 @@ function notifyWhatsApp(orderNumber,items,total,name,phone,address){
  $("doneOrder").onclick=closeModal;
 }
 function cartModal(){if(!cart.length){modal("<h2>Your cart is empty</h2><p>Choose a live product to add it here.</p>");return}let h=`<h2>Your Cart</h2>${cart.map((i,idx)=>`<div class="cartrow"><div><b>${esc(i.title)}</b><br><small>${money(i.price)} each</small></div><div class="qty"><button data-q="${idx}" data-d="-1">−</button><b>${i.qty}</b><button data-q="${idx}" data-d="1">+</button><button class="remove" data-r="${idx}">×</button></div></div>`).join("")}<div class="lineitem"><b>Total</b><b>${money(cart.reduce((s,i)=>s+i.price*i.qty,0))}</b></div><button class="primary wide" id="checkoutBtn" type="button">Checkout — COD</button>`;modal(h);document.querySelectorAll("[data-q]").forEach(b=>b.onclick=()=>{let i=cart[+b.dataset.q];i.qty=Math.max(1,i.qty+ +b.dataset.d);saveCart();cartModal()});document.querySelectorAll("[data-r]").forEach(b=>b.onclick=()=>{cart.splice(+b.dataset.r,1);saveCart();cartModal()});$("checkoutBtn").onclick=()=>checkout(cart)}
-function showProduct(id,buy=false){let p=getP(id);if(!p)return;let related=products.filter(x=>x.id!==p.id&&x.category===p.category).slice(0,4);modal(`<div class="detail">${p.image_url?`<img src="${esc(p.image_url)}" alt="">`:`<div class="detailemoji">${p.emoji||"📦"}</div>`}<div><span class="tag">${esc(p.category)}</span><h2>${esc(p.title)}</h2><p>${esc(p.description||"Quality product from RETAIL seller.")}</p><div class="bigprice">${money(price(p))} ${off(p)?`<del>${money(p.mrp)}</del><span class="off">${off(p)}% OFF</span>`:""}</div><p>Brand: ${esc(p.brand||"—")} · Stock: ${p.stock??0}</p><button class="primary wide" id="detailAdd">Add to Cart</button> <button class="buy wide" id="detailBuy">Buy Now</button></div></div><h3>Similar products</h3><div class="related">${related.map(x=>`<button data-rel="${x.id}">${esc(x.title)}<br><b>${money(price(x))}</b></button>`).join("")||"<span>No similar products yet.</span>"}</div>`);$("detailAdd").onclick=()=>addToCart(p.id);$("detailBuy").onclick=()=>checkout([{id:p.id,title:p.title,price:price(p),image_url:p.image_url,seller_id:p.seller_id,qty:1}]);document.querySelectorAll("[data-rel]").forEach(x=>x.onclick=()=>showProduct(x.dataset.rel))}
+function showProduct(id,buy=false){
+ const p=getP(id); if(!p)return;
+ const related=products.filter(x=>String(x.id)!==String(p.id)&&x.category===p.category).slice(0,4);
+ const page=$("productPage");
+ if(!page){modal("<h2>Product details unavailable</h2><p>Please refresh Retail.</p>");return;}
+ $("heroSection").hidden=true; $("catalogHeading").hidden=true; $("products").hidden=true; page.hidden=false;
+ history.pushState({retailProduct:String(id)},"","#product/"+encodeURIComponent(id));
+ page.innerHTML=`<button class="back-products" id="backProducts">← Back to products</button>
+ <div class="product-detail-page">
+ <div class="detail-image-wrap">${p.image_url?`<img class="detail-main-image" src="${esc(p.image_url)}" alt="${esc(p.title)}">`:`<div class="detail-main-image detailemoji">${esc(p.emoji||"📦")}</div>`}</div>
+ <div class="detail-info"><span class="tag">${esc(p.category||"Other")}</span><h1>${esc(p.title)}</h1>
+ <p class="detail-description">${esc(p.description||"Quality product from RETAIL.")}</p>
+ <div class="detail-price">${money(price(p))} ${off(p)?`<span class="off">${off(p)}% OFF</span>`:""}</div>
+ <p class="detail-meta"><b>Brand:</b> ${esc(p.brand||"—")}</p><p class="detail-meta"><b>Availability:</b> ${Number(p.stock||0)>0?"In stock":"Check availability"}</p>
+ <div class="detail-actions"><button class="add" id="detailAdd">Add to Cart</button><button class="buy" id="detailBuy">Buy Now</button></div>
+ <p class="notice">Payment: Cash on Delivery</p></div></div>
+ <section class="similar-section"><h2>Similar products</h2><div class="products similar-products">${related.map(x=>`<article class="product" data-related-product="${x.id}"><div class="photo">${x.image_url?`<img src="${esc(x.image_url)}" alt="${esc(x.title)}">`:esc(x.emoji||"📦")}</div><div class="pbody"><h3>${esc(x.title)}</h3><div class="prices"><b>${money(price(x))}</b></div><button class="buy wide" data-related-open="${x.id}">View details</button></div></article>`).join("")||"<p>No similar products yet.</p>"}</div></section>`;
+ $("backProducts").onclick=()=>showCatalogue(true);
+ $("detailAdd").onclick=()=>addToCart(p.id);
+ $("detailBuy").onclick=()=>checkout([{id:p.id,title:p.title,price:price(p),image_url:p.image_url,seller_id:p.seller_id,qty:1}]);
+ page.querySelectorAll("[data-related-open]").forEach(b=>b.onclick=()=>showProduct(b.dataset.relatedOpen));
+ page.querySelectorAll("[data-related-product]").forEach(card=>card.onclick=e=>{if(!e.target.closest("button"))showProduct(card.dataset.relatedProduct)});
+ if(buy) $("detailBuy").click();
+}
+function showCatalogue(clearHash=false){
+ const page=$("productPage");if(page)page.hidden=true;
+ $("heroSection").hidden=false;$("catalogHeading").hidden=false;$("products").hidden=false;
+ if(clearHash&&location.hash.startsWith("#product/"))history.pushState({retailHome:true},"",location.pathname+location.search);
+ window.scrollTo({top:0,behavior:"smooth"});
+}
+window.addEventListener("popstate",()=>{
+ const match=location.hash.match(/^#product\/(.+)$/);
+ if(match){showProduct(decodeURIComponent(match[1]));}
+ else showCatalogue(false);
+});
 async function sellerPanel(){
  if(!user){auth();return}
  let r=await db.from("seller_profiles").select("*").eq("user_id",user.id).maybeSingle(),sp=r.data;
