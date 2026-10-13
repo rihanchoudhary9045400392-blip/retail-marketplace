@@ -44,3 +44,11 @@
 .used-market-copy strong{font-size:15px;font-weight:850;color:#172b22}
 .used-market-copy small{font-size:11px;color:#6b7a70;line-height:1.4}
 .used-market-arrow{font-size:21px;color:#0757d9;font-weight:800}
+
+/* Separate marketplace photo shortcuts */
+.marketplace-shortcuts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;width:100%;max-width:900px;margin:0 auto 22px}
+.marketplace-shortcuts .used-market-promo{max-width:none;margin:0;min-width:0;gap:11px;padding:10px 12px}
+.marketplace-photo{width:76px;height:62px;object-fit:cover;border-radius:9px;flex-shrink:0;background:#edf2f7}
+.animal-market-promo{border-color:#d6e7d9;background:#fbfffb}
+.animal-market-promo:hover{border-color:#36834b}
+@media(max-width:560px){.marketplace-shortcuts{gap:8px}.marketplace-shortcuts .used-market-promo{padding:8px;gap:7px}.marketplace-photo{width:54px;height:58px}.marketplace-shortcuts .used-market-copy strong{font-size:12px}.marketplace-shortcuts .used-market-copy small{font-size:10px}.marketplace-shortcuts .used-market-arrow{font-size:17px}}
