@@ -154,7 +154,7 @@ function showProduct(id,buy=false){
  const related=products.filter(x=>String(x.id)!==String(p.id)&&x.category===p.category).slice(0,4);
  const page=$("productPage");
  if(!page){modal("<h2>Product details unavailable</h2><p>Please refresh Retail.</p>");return;}
- $("heroSection").hidden=true; $("catalogHeading").hidden=true; $("products").hidden=true; page.hidden=false;
+ const heroSection=$("heroSection"); if(heroSection)heroSection.hidden=true; const catalogHeading=$("catalogHeading"); if(catalogHeading)catalogHeading.hidden=true; const productsGrid=$("products"); if(productsGrid)productsGrid.hidden=true; page.hidden=false;
  history.pushState({retailProduct:String(id)},"","#product/"+encodeURIComponent(id));
  page.innerHTML=`<button class="back-products" id="backProducts">← Back to products</button>
  <div class="product-detail-page">
