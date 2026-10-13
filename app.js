@@ -236,17 +236,23 @@ async function adminSellers(){
  }catch(err){console.error("RETAIL adminSellers failed:",err);body.innerHTML="<p class='notice'>Could not open seller applications: "+esc(err?.message||"Unknown error")+"</p><button class='dash' id='sellerRetry' type='button'>Retry</button>";$("sellerRetry").onclick=adminSellers;}
 }
 async function adminProducts(){let r=await db.from("products").select("id,title,sale_price,stock,status,seller_id,profiles:seller_id(full_name),categories:category_id(name)").order("created_at",{ascending:false});if(r.error){$("adminBody").innerHTML="<p class=notice>Could not load products: "+esc(r.error.message)+"</p><button class=primary id=adminRetry>Retry</button>";$("adminRetry").onclick=adminProducts;return;}$("adminBody").innerHTML=`<button class="primary" id="adminAdd">Add product</button>`+(r.data||[]).map(p=>`<div class="adminrow"><span><b>${esc(p.title)}</b><br>${money(p.sale_price??0)} · ${p.stock} · ${p.status} · ${esc(p.profiles?.full_name||"")}</span><span><button data-ap="${p.id}">Edit</button><button data-adp="${p.id}" class="danger">Delete</button></span></div>`).join("");$("adminAdd").onclick=()=>productForm();document.querySelectorAll("[data-ap]").forEach(b=>b.onclick=()=>productForm(b.dataset.ap));document.querySelectorAll("[data-adp]").forEach(b=>b.onclick=async()=>{if(confirm("Delete product?")){let d=await db.from("products").delete().eq("id",b.dataset.adp);if(d.error){alert("Delete failed: "+d.error.message);return}toast("Product deleted ✓");await load();adminProducts()}})}
-async function adminOrders(){let r=await db.from("orders").select("id,order_number,status,payment_method,payment_status,subtotal,delivery_address,created_at,order_items(product_title,quantity)").order("created_at",{ascending:false});$("adminBody").innerHTML=(r.data||[]).map(o=>`<div class="order"><b>${esc(o.order_number)}</b> · ${money(o.subtotal)} · COD<br><small>${esc(o.delivery_address?.name||"")} · ${esc(o.delivery_address?.phone||"")} · ${esc(o.delivery_address?.address||"")}</small><select data-os="${o.id}"><option ${o.status==="placed"?"selected":""}>placed</option><option ${o.status==="confirmed"?"selected":""}>confirmed</option><option ${o.status==="packed"?"selected":""}>packed</option><option ${o.status==="shipped"?"selected":""}>shipped</option><option ${o.status==="delivered"?"selected":""}>delivered</option><option ${o.status==="cancelled"?"selected":""}>cancelled</option></select></div>`).join("")||"<p>No orders.</p>";document.querySelectorAll("[data-os]").forEach(s=>s.onchange=async()=>{let x=await db.from("orders").update({status:s.value}).eq("id",s.dataset.os);if(x.error)toast(x.error.message)})}
-$("searchBtn").onclick=render;$("search").oninput=render;const shopTop=$("shopNow");if(shopTop)shopTop.onclick=()=>$("products").scrollIntoView({behavior:"smooth"});const shopBottom=$("shopNowBottom");if(shopBottom)shopBottom.onclick=()=>$("products").scrollIntoView({behavior:"smooth"});$("cats").onclick=e=>{let b=e.target.closest("[data-cat]");if(b){active=b.dataset.cat;renderCats();render()}};$("loginBtn").addEventListener("click",e=>{e.preventDefault();auth().catch(err=>{console.error("RETAIL login click failed:",err);alert("Login could not open. Refresh RETAIL and try again.");});});$("accountBtn").addEventListener("click",e=>{e.preventDefault();account().catch(err=>{console.error("RETAIL account failed:",err);toast("Could not open account. Please refresh.");});});
-const adminNav=$("adminNavBtn");if(adminNav)adminNav.addEventListener("click",e=>{e.preventDefault();adminPanel().catch(err=>{console.error("RETAIL admin panel failed:",err);toast("Could not open Admin Panel.");});});$("cartBtn").addEventListener("click",e=>{e.preventDefault();cartModal();});
-$("modal").addEventListener("click",e=>{if(e.target===$("modal"))closeModal()});
-// Keep this callback synchronous: do not make Supabase requests inside it.
-db.auth.onAuthStateChange((_event, session)=>{
- user=session?.user||null;
- if(!user){profile=null;$("loginBtn").hidden=false;$("accountBtn").hidden=true;}
- else{$("loginBtn").hidden=true;$("accountBtn").hidden=false;}
-});
-startProductAlerts();
-load().catch(e=>{console.error("RETAIL startup:",e);const n=$("resultCount");if(n)n.textContent="Catalogue unavailable";const p=$("products");if(p)p.innerHTML="<div class=\"empty\">The live catalogue could not be loaded. Please refresh the page.</div>"});
-if("serviceWorker" in navigator) navigator.serviceWorker.getRegistrations().then(rs=>Promise.all(rs.map(r=>r.unregister()))).catch(()=>{});
-refreshUser().then(()=>{if(location.hash==="#sell"){if(user)sellerPanel();else auth();}}).catch(e=>{console.error("RETAIL account startup:",e);profile=null;syncAccountButtons();});
+async function adminOrders(){
+ const host=$("adminBody");
+ host.innerHTML="<p>Loading orders…</p>";
+ const r=await db.from("orders").select("id,order_number,status,payment_method,payment_status,subtotal,delivery_address,created_at,order_items(product_title,quantity)").order("created_at",{ascending:false});
+ if(r.error){host.innerHTML="<p class='notice'>Orders could not be loaded: "+esc(r.error.message)+"</p><button class='dash' id='adminOrdersRetry' type='button'>Try again</button>";$("adminOrdersRetry").onclick=adminOrders;return}
+ const labels={placed:"Pending",pending:"Pending",confirmed:"Confirmed",packed:"Packed",shipped:"Shipped",delivered:"Delivered",cancelled:"Cancelled"};
+ host.innerHTML=(r.data||[]).map(o=>{
+  const s=String(o.status||"placed").toLowerCase(),label=labels[s]||s;
+  const tone=s==="delivered"?"#16803c":s==="cancelled"?"#c62828":s==="shipped"?"#0757c9":"#8a5a00";
+  return `<div class="order"><b>${esc(o.order_number)}</b> · ${money(o.subtotal)} · COD<br><span style="display:inline-block;margin:7px 0;padding:4px 9px;border-radius:999px;background:${tone}18;color:${tone};font-weight:700">Status: ${esc(label)}</span><br><small>${esc(o.delivery_address?.name||"")} · ${esc(o.delivery_address?.phone||"")} · ${esc(o.delivery_address?.address||"")}</small><br><small>${(o.order_items||[]).map(i=>esc(i.product_title)+" × "+i.quantity).join(", ")}</small><p style="margin:7px 0">Update order status:</p><select data-os="${o.id}"><option value="placed" ${s==="placed"||s==="pending"?"selected":""}>Pending</option><option value="confirmed" ${s==="confirmed"?"selected":""}>Confirmed</option><option value="packed" ${s==="packed"?"selected":""}>Packed</option><option value="shipped" ${s==="shipped"?"selected":""}>Shipped</option><option value="delivered" ${s==="delivered"?"selected":""}>Delivered</option><option value="cancelled" ${s==="cancelled"?"selected":""}>Cancelled</option></select></div>`;
+ }).join("")||"<p>No orders yet.</p>";
+ const refresh=document.createElement("button");refresh.className="dash wide";refresh.type="button";refresh.textContent="Refresh orders";refresh.onclick=adminOrders;host.appendChild(refresh);
+ host.querySelectorAll("[data-os]").forEach(sel=>sel.onchange=async()=>{
+  const previous=sel.value;sel.disabled=true;
+  const x=await db.from("orders").update({status:sel.value}).eq("id",sel.dataset.os);
+  if(x.error){toast("Status update failed: "+x.error.message);sel.disabled=false;return}
+  toast("Order status updated to "+(labels[sel.value]||sel.value)+".");
+  await adminOrders();
+ });
+}
