@@ -250,6 +250,54 @@ async function adminSellers(){
  }catch(err){console.error("RETAIL adminSellers failed:",err);body.innerHTML="<p class='notice'>Could not open seller applications: "+esc(err?.message||"Unknown error")+"</p><button class='dash' id='sellerRetry' type='button'>Retry</button>";$("sellerRetry").onclick=adminSellers;}
 }
 async function adminProducts(){let r=await db.from("products").select("id,title,sale_price,stock,status,seller_id,profiles:seller_id(full_name),categories:category_id(name)").order("created_at",{ascending:false});if(r.error){$("adminBody").innerHTML="<p class=notice>Could not load products: "+esc(r.error.message)+"</p><button class=primary id=adminRetry>Retry</button>";$("adminRetry").onclick=adminProducts;return;}$("adminBody").innerHTML=`<button class="primary" id="adminAdd">Add product</button>`+(r.data||[]).map(p=>`<div class="adminrow"><span><b>${esc(p.title)}</b><br>${money(p.sale_price??0)} · ${p.stock} · ${p.status} · ${esc(p.profiles?.full_name||"")}</span><span><button data-ap="${p.id}">Edit</button><button data-adp="${p.id}" class="danger">Delete</button></span></div>`).join("");$("adminAdd").onclick=()=>productForm();document.querySelectorAll("[data-ap]").forEach(b=>b.onclick=()=>productForm(b.dataset.ap));document.querySelectorAll("[data-adp]").forEach(b=>b.onclick=async()=>{if(confirm("Delete product?")){let d=await db.from("products").delete().eq("id",b.dataset.adp);if(d.error){alert("Delete failed: "+d.error.message);return}toast("Product deleted ✓");await load();adminProducts()}})}
+async function adminOrderDetail(orderId){
+ const host=$("adminBody");
+ host.innerHTML="<p>Loading order details…</p>";
+ const r=await db.from("orders").select("id,order_number,status,payment_method,payment_status,subtotal,platform_commission,delivery_address,created_at,order_items(product_title,unit_price,quantity,seller_amount,commission_amount)").eq("id",orderId).maybeSingle();
+ if(r.error||!r.data){host.innerHTML="<button class='dash' id='orderBack'>← Back to orders</button><p class='notice'>Could not load this order: "+esc(r.error?.message||"Order not found")+"</p>";$("orderBack").onclick=adminOrders;return}
+ const o=r.data, s=String(o.status||"placed").toLowerCase();
+ const labels={placed:"Pending",pending:"Pending",confirmed:"Confirmed",packed:"Packed",shipped:"Shipped",delivered:"Delivered",cancelled:"Cancelled"};
+ const label=labels[s]||s;
+ const tone=s==="delivered"?"#16803c":s==="cancelled"?"#c62828":s==="shipped"?"#0757c9":"#8a5a00";
+ const address=o.delivery_address||{};
+ host.innerHTML=`<button class="dash wide" id="orderBack">← Back to all orders</button>
+ <section class="order" style="margin-top:14px;padding:16px">
+ <h2 style="margin:0 0 8px">Order details</h2>
+ <p><b>Order ID:</b> ${esc(o.order_number)}</p>
+ <p><b>Current status:</b> <span style="display:inline-block;padding:5px 10px;border-radius:999px;background:${tone}18;color:${tone};font-weight:700">${esc(label)}</span></p>
+ <p><b>Order date:</b> ${esc(new Date(o.created_at).toLocaleString("en-IN"))}</p>
+ <hr>
+ <h3>Customer details</h3>
+ <p><b>Name:</b> ${esc(address.name||"Not provided")}</p>
+ <p><b>Mobile:</b> ${esc(address.phone||"Not provided")}</p>
+ <p><b>Address:</b> ${esc(address.address||"Not provided")}</p>
+ <hr>
+ <h3>Products ordered</h3>
+ ${(o.order_items||[]).map(i=>`<div class="lineitem"><span>${esc(i.product_title)} × ${Number(i.quantity||0)}</span><b>${money(Number(i.unit_price||0)*Number(i.quantity||0))}</b></div>`).join("")||"<p>Product details unavailable.</p>"}
+ <div class="lineitem" style="margin-top:12px"><b>Total amount</b><b>${money(o.subtotal)}</b></div>
+ <p><b>Payment:</b> ${esc(String(o.payment_method||"cod").toUpperCase())} · ${esc(o.payment_status||"pending")}</p>
+ <hr><h3>Update order status</h3>
+ <label for="detailOrderStatus">Choose new status</label>
+ <select id="detailOrderStatus">
+ <option value="placed" ${s==="placed"||s==="pending"?"selected":""}>Pending</option>
+ <option value="confirmed" ${s==="confirmed"?"selected":""}>Confirmed</option>
+ <option value="packed" ${s==="packed"?"selected":""}>Packed</option>
+ <option value="shipped" ${s==="shipped"?"selected":""}>Shipped</option>
+ <option value="delivered" ${s==="delivered"?"selected":""}>Delivered</option>
+ <option value="cancelled" ${s==="cancelled"?"selected":""}>Cancelled</option>
+ </select>
+ <button class="primary wide" id="saveOrderStatus" type="button" style="margin-top:10px">Save status</button><p id="orderStatusMessage" role="status"></p>
+ </section>`;
+ $("orderBack").onclick=adminOrders;
+ $("saveOrderStatus").onclick=async()=>{
+  const btn=$("saveOrderStatus"),msg=$("orderStatusMessage"),next=$("detailOrderStatus").value;
+  btn.disabled=true;msg.textContent="Saving status…";
+  const x=await db.from("orders").update({status:next}).eq("id",o.id);
+  if(x.error){msg.textContent="Status update failed: "+x.error.message;btn.disabled=false;return}
+  toast("Order status updated.");
+  await adminOrderDetail(o.id);
+ };
+}
 async function adminOrders(){
  const host=$("adminBody");
  host.innerHTML="<p>Loading orders…</p>";
@@ -259,16 +307,16 @@ async function adminOrders(){
  host.innerHTML=(r.data||[]).map(o=>{
   const s=String(o.status||"placed").toLowerCase(),label=labels[s]||s;
   const tone=s==="delivered"?"#16803c":s==="cancelled"?"#c62828":s==="shipped"?"#0757c9":"#8a5a00";
-  return `<div class="order"><b>${esc(o.order_number)}</b> · ${money(o.subtotal)} · COD<br><span style="display:inline-block;margin:7px 0;padding:4px 9px;border-radius:999px;background:${tone}18;color:${tone};font-weight:700">Status: ${esc(label)}</span><br><small>${esc(o.delivery_address?.name||"")} · ${esc(o.delivery_address?.phone||"")} · ${esc(o.delivery_address?.address||"")}</small><br><small>${(o.order_items||[]).map(i=>esc(i.product_title)+" × "+i.quantity).join(", ")}</small><p style="margin:7px 0">Update order status:</p><select data-os="${o.id}"><option value="placed" ${s==="placed"||s==="pending"?"selected":""}>Pending</option><option value="confirmed" ${s==="confirmed"?"selected":""}>Confirmed</option><option value="packed" ${s==="packed"?"selected":""}>Packed</option><option value="shipped" ${s==="shipped"?"selected":""}>Shipped</option><option value="delivered" ${s==="delivered"?"selected":""}>Delivered</option><option value="cancelled" ${s==="cancelled"?"selected":""}>Cancelled</option></select></div>`;
+  return `<button type="button" class="order" data-open-order="${esc(o.id)}" style="display:block;width:100%;text-align:left;cursor:pointer;margin:10px 0;padding:14px;background:var(--card,#fff);color:inherit;border:1px solid var(--border,#ddd);border-radius:12px">
+   <b>${esc(o.order_number)}</b> · ${money(o.subtotal)} · COD
+   <span style="display:inline-block;margin:7px 0;padding:4px 9px;border-radius:999px;background:${tone}18;color:${tone};font-weight:700">Status: ${esc(label)}</span>
+   <br><small>${esc(o.delivery_address?.name||"")} · ${esc(o.delivery_address?.phone||"")} · ${esc(o.delivery_address?.address||"")}</small>
+   <br><small>${(o.order_items||[]).map(i=>esc(i.product_title)+" × "+i.quantity).join(", ")}</small>
+   <p style="margin:8px 0 0;font-weight:700">Tap to view order details and update status →</p>
+  </button>`;
  }).join("")||"<p>No orders yet.</p>";
+ host.querySelectorAll("[data-open-order]").forEach(btn=>btn.addEventListener("click",()=>adminOrderDetail(btn.dataset.openOrder)));
  const refresh=document.createElement("button");refresh.className="dash wide";refresh.type="button";refresh.textContent="Refresh orders";refresh.onclick=adminOrders;host.appendChild(refresh);
- host.querySelectorAll("[data-os]").forEach(sel=>sel.onchange=async()=>{
-  const previous=sel.value;sel.disabled=true;
-  const x=await db.from("orders").update({status:sel.value}).eq("id",sel.dataset.os);
-  if(x.error){toast("Status update failed: "+x.error.message);sel.disabled=false;return}
-  toast("Order status updated to "+(labels[sel.value]||sel.value)+".");
-  await adminOrders();
- });
 }
 
 
