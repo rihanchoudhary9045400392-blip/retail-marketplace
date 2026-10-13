@@ -16,3 +16,10 @@
 .similar-section h2{font-size:24px}
 .similar-products{grid-template-columns:repeat(4,minmax(0,1fr))}
 @media(max-width:650px){.product-detail-page{grid-template-columns:1fr;padding:14px}.detail-main-image{height:300px;min-height:0}.detail-actions{position:sticky;bottom:8px;background:#fff;padding:8px;border-radius:12px;box-shadow:0 4px 18px #0001}.similar-products{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+/* Marketplace homepage refinements */
+.hero{background:linear-gradient(115deg,#eaf2ff 0%,#f4f8ff 56%,#e3edff 100%);border:1px solid #dce8ff;min-height:300px}
+.hero-perks{display:flex;gap:14px;flex-wrap:wrap;margin-top:20px;color:#245caa;font-size:12px;font-weight:750}
+.hero-perks span{background:#fff;padding:8px 11px;border-radius:999px;border:1px solid #dbe8ff}
+.sectionhead{margin-top:32px}
+.sectionhead h2{font-size:28px}
