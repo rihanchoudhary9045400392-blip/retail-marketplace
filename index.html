@@ -1,6 +1,19 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#0868ed"><meta name="description" content="RETAIL marketplace"><title>RETAIL — Marketplace</title><link rel="icon" type="image/svg+xml" href="retail-logo.svg?v=4"><link rel="apple-touch-icon" href="retail-logo.svg?v=4"><link rel="manifest" href="manifest.webmanifest?v=5"><link rel="stylesheet" href="styles.css"><link rel="stylesheet" href="retail-layout-fix.css"></head>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#0868ed"><meta name="description" content="RETAIL marketplace"><title>RETAIL — Marketplace</title><link rel="icon" type="image/svg+xml" href="retail-logo.svg?v=4"><link rel="apple-touch-icon" href="retail-logo.svg?v=4"><link rel="manifest" href="manifest.webmanifest?v=5"><link rel="stylesheet" href="styles.css"><link rel="stylesheet" href="retail-layout-fix.css">
+<style>
+#retailWelcomeSplash{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:15px;background:linear-gradient(140deg,#064dc5 0%,#0878f9 58%,#48baff 100%);color:#fff;opacity:1;visibility:visible;transition:opacity .35s ease,visibility .35s ease}
+#retailWelcomeSplash::before,#retailWelcomeSplash::after{content:"";position:absolute;width:240px;height:240px;border:1px solid #ffffff26;border-radius:50%;animation:retailSplashPulse 1.4s ease-out infinite}
+#retailWelcomeSplash::after{width:320px;height:320px;animation-delay:.25s}
+#retailWelcomeSplash .splash-logo{position:relative;z-index:1;width:86px;height:86px;object-fit:contain;filter:drop-shadow(0 10px 18px #003f9b55);animation:retailSplashPop .55s cubic-bezier(.2,.8,.2,1) both}
+#retailWelcomeSplash .splash-title{position:relative;z-index:1;font:900 clamp(34px,8vw,48px)/1 system-ui,sans-serif;letter-spacing:4px}
+#retailWelcomeSplash .splash-sub{position:relative;z-index:1;font:600 13px/1.4 system-ui,sans-serif;letter-spacing:2px;text-transform:uppercase;color:#e2f2ff}
+#retailWelcomeSplash.splash-hidden{opacity:0;visibility:hidden;pointer-events:none}
+@keyframes retailSplashPop{from{transform:scale(.65);opacity:0}to{transform:scale(1);opacity:1}}
+@keyframes retailSplashPulse{0%{transform:scale(.72);opacity:.5}100%{transform:scale(1.18);opacity:0}}
+@media(prefers-reduced-motion:reduce){#retailWelcomeSplash::before,#retailWelcomeSplash::after,#retailWelcomeSplash .splash-logo{animation:none}}
+</style></head>
 <body>
+<div id="retailWelcomeSplash" role="status" aria-label="Welcome to Retail"><img class="splash-logo" src="retail-logo.svg?v=4" alt=""><div class="splash-title">RETAIL</div><div class="splash-sub">Welcome to your marketplace</div></div>
 <header class="top"><a class="brand" href="#"><img class="brand-logo" src="retail-logo.svg?v=4" alt="Retail logo"> RETAIL</a><div class="search"><input id="search" placeholder="Search products, brands and more"><button id="searchBtn">Search</button></div><button class="navbtn" id="loginBtn">Login</button><button class="navbtn" id="cartBtn">Cart <b id="cartCount">0</b></button><button class="navbtn" id="accountBtn" hidden>Account</button><button class="navbtn" id="adminNavBtn" hidden>Admin</button></header>
 <nav class="cats" id="cats"></nav>
 <main>
@@ -13,5 +26,8 @@
 <section class="shopping-benefits" aria-label="Shopping benefits"><article><span class="benefit-icon">🚚</span><div><b>Easy ordering</b><p>Browse products and order from your phone.</p></div></article><article><span class="benefit-icon">💵</span><div><b>Cash on Delivery</b><p>Pay when your order arrives.</p></div></article><article><span class="benefit-icon">🛍️</span><div><b>More to explore</b><p>Discover items across available categories.</p></div></article></section><section class="how-retail"><div><span class="eyebrow">Simple shopping</span><h2>Your next find is just a few taps away</h2><p>Search for an item, open its product page to check the details, then add it to your cart or choose Buy Now.</p></div><button class="primary" id="shopNowBottom" type="button">Browse products</button></section><footer><b>RETAIL</b><span>Cash on Delivery only</span><a href="privacy-policy.html">Privacy Policy</a></footer>
 </main>
 <dialog id="modal"><form method="dialog" class="modalbox"><button class="close" aria-label="Close">×</button><div id="modalBody"></div></form></dialog>
+<script>
+(function(){var splash=document.getElementById('retailWelcomeSplash');function hideSplash(){if(splash)splash.classList.add('splash-hidden')}window.setTimeout(hideSplash,2000);window.addEventListener('pageshow',function(){window.setTimeout(hideSplash,2000)},{once:true});})();
+</script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="app.js?v=20261013-catalogue"></script>
 </body></html>
