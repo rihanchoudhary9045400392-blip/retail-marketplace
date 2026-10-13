@@ -34,3 +34,7 @@
 .how-retail p{max-width:690px;color:#647267;line-height:1.65;margin-bottom:0}
 #shopNowBottom{white-space:nowrap}
 @media(max-width:650px){.shopping-benefits{grid-template-columns:1fr;gap:9px;margin:22px 0}.shopping-benefits article{padding:14px}.how-retail{align-items:flex-start;flex-direction:column;padding:20px}.hero-perks{gap:7px}.hero-perks span{font-size:11px}}
+
+
+/* Separate second-hand marketplace entry */
+.used-market-promo{display:flex;align-items:center;justify-content:space-between;gap:22px;margin:0 0 28px;padding:25px 28px;background:#fff;border:1px solid #dce6f5;border-left:5px solid #0757d9;border-radius:15px}.used-market-promo h2{font-size:clamp(22px,3vw,30px);margin:7px 0}.used-market-promo p{max-width:700px;color:#647267;line-height:1.65;margin:0}.used-market-link{display:inline-block;white-space:nowrap;padding:13px 17px;border-radius:9px;background:#0757d9;color:white;text-decoration:none;font-weight:800}@media(max-width:620px){.used-market-promo{align-items:flex-start;flex-direction:column;padding:20px}.used-market-link{white-space:normal}}
