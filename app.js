@@ -11,7 +11,7 @@ function syncAccountButtons(){ $("loginBtn").hidden=!!user; $("accountBtn").hidd
 function off(p){let m=Number(p.mrp||p.price||0),s=Number(p.sale_price||p.price||0);return m>s?Math.round((m-s)*100/m):0}
 function saveCart(){localStorage.setItem("retail_cart",JSON.stringify(cart));$("cartCount").textContent=cart.reduce((n,x)=>n+x.qty,0)}
 function price(p){return Number(p.sale_price??p.price??0)}
-function renderCats(){let list=["All",...categories.map(c=>c.name)];$("cats").innerHTML=list.map(c=>`<button class="${active===c?"selected":""}" data-cat="${esc(c)}">${esc(c)}</button>`).join("")}
+function renderCats(){let list=["All",...categories.filter(c=>/veterinary/i.test(c.name)).map(c=>c.name)];$("cats").innerHTML=list.map(c=>`<button class="${active===c?"selected":""}" data-cat="${esc(c)}">${esc(c)}</button>`).join("")}
 function render(){
  const q=$("search").value.trim().toLowerCase();
  const shown=products.filter(p=>(active==="All"||p.category===active)&&(!q||[p.title,p.brand,p.category,p.description].join(" ").toLowerCase().includes(q)));
@@ -37,14 +37,14 @@ async function load(){
   ]);
   const timeout=new Promise((_,reject)=>setTimeout(()=>reject(new Error("The catalogue database did not respond in time.")),12000));
   const [c,p]=await Promise.race([requests,timeout]);
-  if(c.error)console.warn("RETAIL categories:",c.error.message); else categories=c.data||[];
+  if(c.error)console.warn("RETAIL categories:",c.error.message); else categories=(c.data||[]).filter(k=>/veterinary/i.test(k.name||""));
   if(p.error){
    console.error("RETAIL products:",p.error);
    products=[];
    if(count)count.textContent="Catalogue connection issue";
    if(list)list.innerHTML="<div class='empty'>Live catalogue could not load. Check the Supabase database settings and product-table permissions. No sample products are shown.</div>";
   }else{
-   products=(p.data||[]).map(x=>({...x,category:categories.find(k=>k.id===x.category_id)?.name||"Other",seller_name:"Marketplace seller"}));
+   products=(p.data||[]).filter(x=>categories.some(k=>k.id===x.category_id)).map(x=>({...x,category:categories.find(k=>k.id===x.category_id)?.name||"Veterinary Medicines",seller_name:"Marketplace seller"}));
    if(!products.length && list)list.innerHTML="<div class='empty'>No products available yet. Please check back soon.</div>";
   }
   renderCats();render();
