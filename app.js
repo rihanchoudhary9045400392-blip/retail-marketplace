@@ -48,6 +48,7 @@ async function load(){
    if(!products.length && list)list.innerHTML="<div class='empty'>No products available yet. Please check back soon.</div>";
   }
   renderCats();render();
+  const initialProduct=location.hash.match(/^#product\/(.+)$/); if(initialProduct)showProduct(decodeURIComponent(initialProduct[1]));
   if(p.error && count)count.textContent="Database error";
  }catch(e){
   console.error("RETAIL catalogue load failed:",e);
