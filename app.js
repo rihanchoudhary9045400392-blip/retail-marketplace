@@ -3,7 +3,7 @@ const SUPABASE_PUBLISHABLE_KEY="sb_publishable_wmNek6qB6MCiPIJzueJhVQ_7-6d42yl";
 const db=window.supabase.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY);
 const incomingReferral=new URLSearchParams(location.search).get("ref");if(incomingReferral&&/^[A-Z0-9]{6,12}$/i.test(incomingReferral)){try{localStorage.setItem("retail_referral_code",incomingReferral.toUpperCase())}catch(e){}}
 const $=id=>document.getElementById(id), money=n=>"₹"+Number(n||0).toLocaleString("en-IN");
-let products=[],categories=[],allCategories=[],cart=JSON.parse(localStorage.getItem("retail_cart")||"[]"),active="All",user=null,profile=null;
+let products=[],categories=[],allCategories=[],cart=JSON.parse(localStorage.getItem("retail_cart")||"[]"),active="All",user=null,profile=null,productAlertChannel=null;
 const sample=[];
 function esc(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
 function modal(h){$("modalBody").innerHTML=h;/* The modal is wrapped in a method=dialog form. Prevent dashboard/action buttons from accidentally submitting and closing it. */$("modalBody").querySelectorAll("button:not(.close)").forEach(b=>{if(!b.hasAttribute("type"))b.type="button"});$("modal").showModal()}
@@ -98,7 +98,7 @@ async function auth(){
 }
 async function account(){
  if(!user){auth();return}
- let isAdmin=profile?.role==="admin", html=`<h2>My RETAIL account</h2><p><b>${esc(profile?.full_name||user.email)}</b><br>${esc(profile?.phone||"")}</p><div class="dashgrid"><button class="dash" id="ordersBtn">My Orders</button><button class="dash" id="sellerBtn">Seller Dashboard</button><button class="dash" id="coinsBtn">🪙 My Coins & Invite</button>${isAdmin?'<button class="dash" id="adminBtn">Admin Panel</button>':""}<button class="dash danger" id="logoutBtn">Logout</button></div><div id="dashBody"></div>`;modal(html);$("ordersBtn").onclick=myOrders;$("sellerBtn").onclick=sellerPanel;$("coinsBtn").onclick=rewardsPanel;if(isAdmin)$("adminBtn").onclick=adminPanel;$("logoutBtn").onclick=async()=>{await db.auth.signOut();profile=null;user=null;syncAccountButtons();closeModal();await refreshUser();toast("Logged out")}}
+ let isAdmin=profile?.role==="admin", html=`<h2>My RETAIL account</h2><p><b>${esc(profile?.full_name||user.email)}</b><br>${esc(profile?.phone||"")}</p><div class="dashgrid"><button class="dash" id="ordersBtn">My Orders</button><button class="dash" id="sellerBtn">Seller Dashboard</button><button class="dash" id="coinsBtn">🪙 My Coins & Invite</button><button class="dash" id="alertsBtn">🔔 Enable free product alerts</button>${isAdmin?'<button class="dash" id="adminBtn">Admin Panel</button>':""}<button class="dash danger" id="logoutBtn">Logout</button></div><div id="dashBody"></div>`;modal(html);$("ordersBtn").onclick=myOrders;$("sellerBtn").onclick=sellerPanel;$("coinsBtn").onclick=rewardsPanel;$("alertsBtn").onclick=enableProductAlerts;if(isAdmin)$("adminBtn").onclick=adminPanel;$("logoutBtn").onclick=async()=>{await db.auth.signOut();profile=null;user=null;syncAccountButtons();closeModal();await refreshUser();toast("Logged out")}}
 async function rewardsPanel(){
  if(!user){auth();return}
  const body=$("dashBody");
@@ -112,6 +112,27 @@ async function rewardsPanel(){
  body.innerHTML=`<section class="notice"><h3>🪙 RETAIL Coins</h3><p style="font-size:28px;font-weight:800;margin:6px 0">${Number(result.data.coins_balance||0)} coins</p><p>Earn 10 coins when a new user successfully registers through your invite link. Listing one product costs 50 coins.</p></section><label>Your referral link</label><input id="referralLink" readonly value="${esc(link)}"><button class="primary wide" id="copyReferral" type="button">Copy Invite Link</button><button class="dash wide" id="shareReferral" type="button">Share Link</button><h3>Recent coin activity</h3>${(ledger.data||[]).map(x=>`<div class="adminrow"><span>${x.reason==="referral_signup"?"Successful referral":x.reason==="product_listing"?"Product listing":"Coin adjustment"}<br><small>${new Date(x.created_at).toLocaleString("en-IN")}</small></span><b>${x.amount>0?"+":""}${x.amount} coins</b></div>`).join("")||"<p>No coin activity yet.</p>"}`;
  $("copyReferral").onclick=async()=>{try{await navigator.clipboard.writeText(link);toast("Invite link copied ✓")}catch(e){$("referralLink").focus();$("referralLink").select();toast("Select and copy your invite link")}};
  $("shareReferral").onclick=async()=>{if(navigator.share){try{await navigator.share({title:"Join RETAIL Marketplace",text:"Join RETAIL using my invite link:",url:link})}catch(e){}}else{try{await navigator.clipboard.writeText(link);toast("Invite link copied ✓")}catch(e){$("referralLink").focus();$("referralLink").select()}}};
+}
+async function enableProductAlerts(){
+ if(!("Notification" in window)){modal("<h2>Product alerts</h2><p>This browser does not support free browser notifications. You can still see new products while browsing RETAIL.</p>");return}
+ let permission=Notification.permission;
+ if(permission!=="granted"){permission=await Notification.requestPermission()}
+ if(permission!=="granted"){modal("<h2>Notifications not enabled</h2><p>To receive free product alerts, allow notifications for RETAIL in your browser settings.</p>");return}
+ try{localStorage.setItem("retail_product_alerts","1")}catch(e){}
+ startProductAlerts();
+ modal("<h2>🔔 Product alerts enabled</h2><p>Free alerts are enabled on this device. When RETAIL is open and connected, you can get a notification when a new product is listed.</p><p class=notice>No SMS charges. Alerts may not arrive when the site is closed because background push is not configured.</p>");
+}
+function startProductAlerts(){
+ if(productAlertChannel||!("Notification" in window)||Notification.permission!=="granted")return;
+ try{if(localStorage.getItem("retail_product_alerts")!=="1")return}catch(e){return}
+ productAlertChannel=db.channel("retail-live-product-alerts").on("postgres_changes",{event:"INSERT",schema:"public",table:"products"},payload=>{
+  const p=payload.new||{};
+  if(!p.id||p.status!=="active"||String(p.seller_id||"")===String(user?.id||""))return;
+  const title=String(p.title||"New product").slice(0,100);
+  try{const n=new Notification("New on RETAIL: "+title,{body:"Tap to see product details.",icon:"retail-logo.svg"});n.onclick=()=>{window.focus();window.location.href=location.origin+location.pathname+"#product/"+encodeURIComponent(p.id)}}catch(e){console.warn("RETAIL notification could not display:",e)}
+  toast("New product listed: "+title);
+  load().catch(e=>console.warn("Could not refresh after new product:",e));
+ }).subscribe(status=>{if(status==="CHANNEL_ERROR"||status==="TIMED_OUT")console.warn("RETAIL live product alerts connection:",status)});
 }
 async function myOrders(){
  if(!user)return auth();let r=await db.from("orders").select("id,order_number,status,payment_method,payment_status,subtotal,platform_commission,delivery_address,created_at,order_items(product_title,unit_price,quantity,seller_amount,commission_amount)").eq("customer_id",user.id).order("created_at",{ascending:false});
@@ -213,6 +234,7 @@ db.auth.onAuthStateChange((_event, session)=>{
  if(!user){profile=null;$("loginBtn").hidden=false;$("accountBtn").hidden=true;}
  else{$("loginBtn").hidden=true;$("accountBtn").hidden=false;}
 });
+startProductAlerts();
 load().catch(e=>{console.error("RETAIL startup:",e);const n=$("resultCount");if(n)n.textContent="Catalogue unavailable";const p=$("products");if(p)p.innerHTML="<div class=\"empty\">The live catalogue could not be loaded. Please refresh the page.</div>"});
 if("serviceWorker" in navigator) navigator.serviceWorker.getRegistrations().then(rs=>Promise.all(rs.map(r=>r.unregister()))).catch(()=>{});
 refreshUser().then(()=>{if(location.hash==="#sell"){if(user)sellerPanel();else auth();}}).catch(e=>{console.error("RETAIL account startup:",e);profile=null;syncAccountButtons();});
