@@ -33,4 +33,18 @@ $("usedSearch").addEventListener("input",renderListings);
 $("refreshUsed").addEventListener("click",loadListings);
 refresh();
 </script>
+<script>
+/* Independent public-listing fallback for second-hand page. */
+(async function retailSecondHandFallback(){
+ const grid=document.getElementById("usedGrid"); if(!grid)return;
+ try{
+  const u="https://oebapdfkaumpmwdblqbv.supabase.co/rest/v1/second_hand_listings?select=id,title,description,price,item_condition,image_url,city,seller_name,seller_phone,status,created_at&status=eq.active&order=created_at.desc&limit=100";
+  const r=await fetch(u,{headers:{apikey:"sb_publishable_wmNek6qB6MCiPIJzueJhVQ_7-6d42yl"},cache:"no-store"});
+  const data=await r.json(); if(!r.ok)throw new Error(data.message||("HTTP "+r.status));
+  const esc2=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+  if(!Array.isArray(data)||!data.length){grid.innerHTML="<div class='used-empty'>No active second-hand listings found.</div>";return}
+  grid.innerHTML=data.map(x=>"<article class='used-card'><div class='used-photo'>"+(x.image_url?"<img src='"+esc2(x.image_url)+"' alt='"+esc2(x.title)+"' loading='lazy'>":"♻️")+"</div><div class='used-body'><span class='used-condition'>"+esc2(x.item_condition)+"</span><h3>"+esc2(x.title)+"</h3><div class='used-price'>₹"+Number(x.price||0).toLocaleString("en-IN")+"</div><div class='used-meta'>📍 "+esc2(x.city||"Area not shared")+" · "+esc2(x.seller_name||"Seller")+"</div><p class='used-desc'>"+esc2(x.description)+"</p><div class='used-card-actions'><a class='used-btn' target='_blank' rel='noopener' href='https://wa.me/"+esc2(String(x.seller_phone||"").replace(/\\D/g,""))+"?text="+encodeURIComponent("Hi, I am interested in your RETAIL second-hand listing: "+(x.title||""))+"'>Contact seller</a></div></div></article>").join("");
+ }catch(e){console.error("Retail second-hand fallback failed",e);grid.innerHTML="<div class='used-empty'>Could not load second-hand listings: "+String(e.message||e)+" <button class='used-btn secondary' onclick='location.reload()'>Retry</button></div>"}
+})();
+</script>
 </body></html>
