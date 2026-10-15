@@ -10,7 +10,25 @@
 <body>
 <header class="top"><strong>🛍 RETAIL · Commission Tracker</strong><a href="index.html">← Back to RETAIL</a></header>
 <main class="wrap">
-<div class="note"><strong>Preview / local-only:</strong> This tool stores records only in this browser on this device. It does not connect to the live orders database, verify deliveries, or send/receive money. Do not enter sensitive customer data. A shared, secure database version must be configured and tested before launch.</div>
+<div class="note"><strong>Preview only:</strong> Live commission totals below are read-only and require an RETAIL admin login. Manual records further down are saved only in this browser/device and are not linked to live orders or payments. No customer address or payment details are displayed.</div>
+
+<section class="panel" id="livePanel">
+ <div class="rowtitle"><h2 style="margin:0">Live order commissions</h2><span class="pill">Read-only · Admin only</span></div>
+ <p class="small">Reads RETAIL order_items and orders. It does not change order status or mark a commission as paid.</p>
+ <form id="adminLoginForm" class="grid">
+  <div><label for="adminEmail">Admin email</label><input id="adminEmail" type="email" autocomplete="username" required placeholder="Admin email"></div>
+  <div><label for="adminPassword">Password</label><input id="adminPassword" type="password" autocomplete="current-password" required placeholder="Account password"></div>
+  <div class="actions" style="align-items:end"><button type="submit">Sign in to load</button><button type="button" class="secondary" id="adminSignOut">Sign out</button><button type="button" class="secondary" id="reloadLive">Refresh orders</button></div>
+ </form>
+ <p id="liveMessage" role="status" class="small">Sign in with the RETAIL admin account to load live commission records.</p>
+ <div class="stats">
+  <div class="stat"><small>Recorded commission</small><div class="amount" id="liveTotal">₹0</div></div>
+  <div class="stat"><small>Delivered orders</small><div class="amount" id="liveDelivered">₹0</div></div>
+  <div class="stat"><small>Cancelled / returned</small><div class="amount" id="liveCancelled">₹0</div></div>
+ </div>
+ <div class="table-wrap"><table><thead><tr><th>Order date / reference</th><th>Seller / product</th><th>Commission</th><th>Order status</th></tr></thead><tbody id="liveRows"></tbody></table></div>
+</section>
+
 <section class="stats">
 <div class="stat"><small>Agreed commission total</small><div class="amount" id="agreedTotal">₹0</div></div>
 <div class="stat"><small>Pending commission</small><div class="amount" id="pendingTotal">₹0</div></div>
@@ -64,6 +82,37 @@ $("rows").addEventListener("change",e=>{const id=e.target.dataset.status||e.targ
 $("rows").addEventListener("click",e=>{const id=e.target.dataset.delete;if(!id)return;if(confirm("Delete this record from this browser?")){records=records.filter(r=>r.id!==id);save()}});
 $("clearBtn").addEventListener("click",()=>{if(confirm("Permanently clear all commission records saved in this browser? Export CSV first if needed.")){records=[];save()}});
 $("exportBtn").addEventListener("click",()=>{const cols=["date","ref","seller","product","commission","status","payment","notes"];const q=v=>'"'+String(v??"").replace(/"/g,'""')+'"';const csv=[cols.join(","),...records.map(r=>cols.map(k=>q(r[k])).join(","))].join("\r\n");const blob=new Blob(["\ufeff"+csv],{type:"text/csv;charset=utf-8"});const url=URL.createObjectURL(blob);const a=document.createElement("a");a.href=url;a.download="retail-commission-records.csv";a.click();URL.revokeObjectURL(url)});
+
+const RETAIL_URL="https://oebapdfkaumpmwdblqbv.supabase.co";
+const RETAIL_KEY="sb_publishable_wmNek6qB6MCiPIJzueJhVQ_7-6d42yl";
+const liveDb=window.supabase.createClient(RETAIL_URL,RETAIL_KEY);
+const liveMoney=n=>"₹"+Number(n||0).toLocaleString("en-IN",{maximumFractionDigits:2});
+function liveMsg(message){$("liveMessage").textContent=message}
+async function loadLiveCommissions(){
+ $("liveRows").innerHTML="";$("liveTotal").textContent=liveMoney(0);$("liveDelivered").textContent=liveMoney(0);$("liveCancelled").textContent=liveMoney(0);
+ const {data:{user:authUser},error:authError}=await liveDb.auth.getUser();
+ if(authError||!authUser){liveMsg("Please sign in with the RETAIL admin account.");return}
+ const {data:me,error:profileError}=await liveDb.from("profiles").select("role").eq("id",authUser.id).maybeSingle();
+ if(profileError||!me||me.role!=="admin"){liveMsg("Access denied: this view is only for the RETAIL admin account.");return}
+ liveMsg("Loading live orders…");
+ const [itemsResult,sellersResult]=await Promise.all([
+  liveDb.from("order_items").select("id,product_title,commission_amount,seller_id,orders!inner(order_number,status,created_at)").limit(500),
+  liveDb.from("seller_profiles").select("user_id,store_name").limit(500)
+ ]);
+ if(itemsResult.error){liveMsg("Could not load live commission records. Check admin permissions and database policies.");return}
+ const sellerNames=new Map((sellersResult.data||[]).map(s=>[s.user_id,s.store_name]));
+ const items=(itemsResult.data||[]).slice().sort((a,b)=>String(b.orders?.created_at||"").localeCompare(String(a.orders?.created_at||"")));
+ const total=items.reduce((sum,x)=>sum+Number(x.commission_amount||0),0);
+ const delivered=items.filter(x=>x.orders?.status==="delivered").reduce((sum,x)=>sum+Number(x.commission_amount||0),0);
+ const cancelled=items.filter(x=>["cancelled","returned"].includes(x.orders?.status)).reduce((sum,x)=>sum+Number(x.commission_amount||0),0);
+ $("liveTotal").textContent=liveMoney(total);$("liveDelivered").textContent=liveMoney(delivered);$("liveCancelled").textContent=liveMoney(cancelled);
+ $("liveRows").innerHTML=items.map(x=>'<tr><td>'+esc(x.orders?.created_at?new Date(x.orders.created_at).toLocaleDateString("en-IN"):"—")+'<br><span class="small">'+esc(x.orders?.order_number||"—")+'</span></td><td><b>'+esc(sellerNames.get(x.seller_id)||"Seller")+'</b><br>'+esc(x.product_title||"Product")+'</td><td><b>'+liveMoney(x.commission_amount)+'</b></td><td><span class="pill">'+esc(x.orders?.status||"unknown")+'</span></td></tr>').join("");
+ liveMsg("Loaded "+items.length+" order item(s). This view is read-only; commission paid status is not stored in the current order schema."+(sellersResult.error?" Seller shop names unavailable; showing generic seller labels.":""));
+}
+$("adminLoginForm").addEventListener("submit",async e=>{e.preventDefault();liveMsg("Signing in…");const {error}=await liveDb.auth.signInWithPassword({email:$("adminEmail").value.trim(),password:$("adminPassword").value});if(error){liveMsg("Sign-in failed. Check the admin email/password and try again.");return}await loadLiveCommissions()});
+$("adminSignOut").addEventListener("click",async()=>{await liveDb.auth.signOut();$("liveRows").innerHTML="";liveMsg("Signed out. Sign in with the RETAIL admin account to load live orders.")});
+$("reloadLive").addEventListener("click",loadLiveCommissions);
+
 render();
 </script>
 </body></html>
