@@ -166,9 +166,48 @@ async function myOrders(){
 async function checkout(items=cart){
  if(!user){auth();return}
  if(!items.length){modal("<h2>Cart is empty</h2><p>Add products first.</p>");return}
- const total=items.reduce((s,i)=>s+Number(i.price)*i.qty,0);
- modal(`<h2>COD Checkout</h2><div class="notice"><b>Cash on Delivery only.</b><br>No UPI or online payment is collected.</div><div class="summary">${items.map(i=>`<div class="lineitem"><span>${esc(i.title)} × ${i.qty}</span><b>${money(i.price*i.qty)}</b></div>`).join("")}<div class="lineitem"><b>Total</b><b>${money(total)}</b></div></div><label>Full name</label><input id="coName" value="${esc(profile?.full_name||"")}"><label>Mobile</label><input id="coPhone" value="${esc(profile?.phone||"")}" inputmode="tel"><label>Delivery address</label><textarea id="coAddress" rows="4" placeholder="House, village/city, district, PIN"></textarea><button class="primary wide" id="placeOrder" type="button">Place COD Order</button><p id="coMsg"></p>`);
- $("placeOrder").onclick=async()=>{let n=$("coName").value.trim(),ph=$("coPhone").value.trim(),addr=$("coAddress").value.trim(),m=$("coMsg");if(!n||!/^[0-9]{10}$/.test(ph)||!addr){m.textContent="Enter name, valid 10-digit mobile and full address.";return}m.textContent="Placing order…";let number="RET"+Date.now().toString().slice(-10);let o=await db.from("orders").insert({customer_id:user.id,order_number:number,status:"placed",payment_method:"cod",payment_status:"pending",subtotal:total,platform_commission:total*.10,delivery_address:{name:n,phone:ph,address:addr}}).select("id,order_number").single();if(o.error){m.textContent=o.error.message;return}let rows=items.map(i=>{const live=getP(i.id);const sellerId=live?.seller_id||i.seller_id;return {order_id:o.data.id,product_id:i.id,seller_id:sellerId,product_title:live?.title||i.title,unit_price:live?price(live):i.price,quantity:i.qty,seller_amount:(live?price(live):i.price)*i.qty*.90,commission_amount:(live?price(live):i.price)*i.qty*.10}});if(rows.some(x=>!x.seller_id)){await db.from("orders").delete().eq("id",o.data.id);m.textContent="Order failed: product seller details are missing. Remove this item from cart and add it again.";return}let ir=await db.from("order_items").insert(rows);if(ir.error){await db.from("orders").delete().eq("id",o.data.id);m.textContent=ir.error.message;return}cart=[];saveCart();closeModal();notifyWhatsApp(o.data.order_number,items,total,n,ph,addr);}}
+ const ids=[...new Set(items.map(i=>i.id).filter(Boolean).map(String))];
+ if(!ids.length){modal("<h2>Checkout unavailable</h2><p>Please remove old cart items and add products from the live catalogue.</p>");return}
+ const liveResult=await db.from("products").select("id,title,price,sale_price,stock,image_url,status,seller_id").in("id",ids);
+ if(liveResult.error){modal("<h2>Could not verify products</h2><p>"+esc(liveResult.error.message)+"</p><p>Please try again in a moment.</p>");return}
+ const liveById=new Map((liveResult.data||[]).map(p=>[String(p.id),p]));
+ const normalized=[];
+ for(const item of items){
+  const p=liveById.get(String(item.id));
+  if(!p||p.status!=="active"){modal("<h2>Product unavailable</h2><p>"+esc(item.title||"A cart item")+" is no longer available. Please refresh the catalogue and update your cart.</p>");return}
+  const qty=Math.max(1,Math.floor(Number(item.qty)||1)),stock=Number(p.stock??0);
+  if(stock<qty){modal("<h2>Stock changed</h2><p>"+esc(p.title)+" has only "+stock+" item(s) in stock. Please update your cart.</p>");return}
+  normalized.push({id:p.id,title:p.title,price:price(p),image_url:p.image_url,seller_id:p.seller_id,qty});
+ }
+ items=normalized;
+ const total=items.reduce((sum,i)=>sum+Number(i.price)*i.qty,0);
+ modal(`<h2>COD Checkout</h2><div class="notice"><b>Cash on Delivery only.</b><br>No UPI or online payment is collected.</div><div class="summary">${items.map(i=>`<div class="lineitem"><span>${esc(i.title)} × ${i.qty}</span><b>${money(i.price*i.qty)}</b></div>`).join("")}<div class="lineitem"><b>Total</b><b>${money(total)}</b></div></div><label>Full name</label><input id="coName" value="${esc(profile?.full_name||"")}"><label>Mobile</label><input id="coPhone" value="${esc(profile?.phone||"")}" inputmode="tel"><label>Delivery address</label><textarea id="coAddress" rows="4" placeholder="House, village/city, district, PIN"></textarea><button class="primary wide" id="placeOrder" type="button">Place COD Order</button><p id="coMsg" role="status" aria-live="polite"></p>`);
+ $("placeOrder").onclick=async()=>{
+  let n=$("coName").value.trim(),ph=$("coPhone").value.trim(),addr=$("coAddress").value.trim(),m=$("coMsg");
+  if(!n||!/^[0-9]{10}$/.test(ph)||!addr){m.textContent="Enter name, valid 10-digit mobile and full address.";return}
+  const btn=$("placeOrder");btn.disabled=true;m.textContent="Checking latest price and stock…";
+  try{
+   const latest=await db.from("products").select("id,title,price,sale_price,stock,status,seller_id").in("id",ids);
+   if(latest.error)throw new Error(latest.error.message);
+   const latestById=new Map((latest.data||[]).map(p=>[String(p.id),p]));
+   for(const item of items){
+    const p=latestById.get(String(item.id));
+    if(!p||p.status!=="active"||Number(p.stock??0)<item.qty){m.textContent="A product is no longer available or stock has changed. Close checkout, update your cart, and try again.";btn.disabled=false;return}
+    if(price(p)!==Number(item.price)){m.textContent="The price of "+p.title+" has changed. Close checkout and reopen it to confirm the new total.";btn.disabled=false;return}
+    if(!p.seller_id){m.textContent="Order unavailable: seller details are missing for "+p.title+".";btn.disabled=false;return}
+   }
+   m.textContent="Placing order…";
+   const number="RET"+Date.now().toString().slice(-10);
+   const o=await db.from("orders").insert({customer_id:user.id,order_number:number,status:"placed",payment_method:"cod",payment_status:"pending",subtotal:total,platform_commission:total*.10,delivery_address:{name:n,phone:ph,address:addr}}).select("id,order_number").single();
+   if(o.error)throw new Error(o.error.message);
+   const rows=items.map(i=>({order_id:o.data.id,product_id:i.id,seller_id:i.seller_id,product_title:i.title,unit_price:i.price,quantity:i.qty,seller_amount:i.price*i.qty*.90,commission_amount:i.price*i.qty*.10}));
+   const ir=await db.from("order_items").insert(rows);
+   if(ir.error){await db.from("orders").delete().eq("id",o.data.id);throw new Error(ir.error.message)}
+   if(items.every(i=>cart.some(c=>String(c.id)===String(i.id)))){cart=[];saveCart()}
+   closeModal();notifyWhatsApp(o.data.order_number,items,total,n,ph,addr);
+  }catch(err){m.textContent=err?.message||"Could not place order. Please try again.";btn.disabled=false}
+ };
+}
 function notifyWhatsApp(orderNumber,items,total,name,phone,address){
  const text="RETAIL ORDER "+orderNumber+"\n"+items.map(i=>i.title+" x "+i.qty+" = ₹"+(i.price*i.qty)).join("\n")+"\nTotal: ₹"+total+"\nPayment: Cash on Delivery\nCustomer: "+name+"\nMobile: "+phone+"\nAddress: "+address;
  modal('<h2>Order placed ✓</h2><p>Your COD order <b>'+esc(orderNumber)+'</b> has been saved.</p><p class="notice">Tap below to send the order details to RETAIL WhatsApp. WhatsApp will ask you to press Send.</p><a class="primary wide waLink" target="_blank" rel="noopener" href="https://wa.me/919045400392?text='+encodeURIComponent(text)+'">Send order to WhatsApp</a><button class="dash wide" id="doneOrder" type="button">Done</button>');
