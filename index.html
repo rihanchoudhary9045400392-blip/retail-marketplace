@@ -17,14 +17,50 @@
 <header class="top"><a class="brand" href="#"><img class="brand-logo" src="retail-logo.svg?v=4" alt="Retail logo"> RETAIL</a><div class="search"><input id="search" placeholder="Search products, brands and more"><button id="searchBtn">Search</button></div><button class="navbtn" id="loginBtn">Login</button><button class="navbtn" id="cartBtn">Cart <b id="cartCount">0</b></button><button class="navbtn" id="accountBtn" hidden>Account</button><button class="navbtn" id="adminNavBtn" hidden>Admin</button></header>
 <nav class="cats" id="cats"></nav>
 <main>
-<section class="marketplace-shortcuts" aria-label="Explore separate marketplaces">
-<a class="all-market-promo" href="all-products.html"><span class="all-market-icon">🛍️</span><span class="used-market-copy"><strong>All Products</strong><small>Regular products · Second-hand · Animals — all in one place</small></span><span class="used-market-arrow" aria-hidden="true">↗</span></a>
+<section class="marketplace-shortcuts" aria-label="Explore RETAIL marketplaces">
+<a class="all-market-promo" href="#allListingsHeading"><span class="all-market-icon">🛍️</span><span class="used-market-copy"><strong>All Products</strong><small>Regular products · Second-hand · Animals — all in one place</small></span><span class="used-market-arrow" aria-hidden="true">↗</span></a>
 <a class="used-market-promo" href="second-hand.html"><span class="marketplace-photo-grid" aria-label="Different second-hand products"><img src="https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=160&q=75" alt="Shoes"><img src="https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=160&q=75" alt="Headphones"><img src="https://images.unsplash.com/photo-1553062407-98eeb64c6a62?auto=format&fit=crop&w=160&q=75" alt="Bag"><img src="https://images.unsplash.com/photo-1511708171634-2f91d5a5a3b9?auto=format&fit=crop&w=160&q=75" alt="Mobile phone"></span><span class="used-market-copy"><strong>Second-hand</strong><small>Used products · Buy or sell</small></span><span class="used-market-arrow" aria-hidden="true">↗</span></a>
 <a class="used-market-promo animal-market-promo" href="animal-marketplace.html"><img class="marketplace-photo" src="https://images.unsplash.com/photo-1751911383039-d17dff424d3b?auto=format&fit=crop&w=500&q=85&v=2" alt="Cow and calf standing together in a green field"><span class="used-market-copy"><strong>Animal Marketplace</strong><small>Cows · Buffaloes · Goats · Birds</small></span><span class="used-market-arrow" aria-hidden="true">↗</span></a>
 </section>
 <p style="text-align:center;margin:10px 0 18px"><a href="more-products.html" style="font-size:13px;font-weight:700;color:#0757d9;text-decoration:none">Looking for cosmetics, clothes or other products? Explore More Categories ↗</a></p>
 <section class="sectionhead" id="catalogHeading"><div><span class="eyebrow">Live catalogue</span><h2>Popular products</h2></div><span class="muted" id="resultCount">Loading…</span></section>
 <section class="products" id="products"></section><section id="productPage" hidden></section>
+
+<section class="sectionhead" id="allListingsHeading"><div><span class="eyebrow">One place · Every listing</span><h2>All Products</h2><p class="muted" style="margin:6px 0 0">Regular products, fruits, second-hand items and animals — all together</p></div><span class="muted" id="allListingsCount">Loading…</span></section>
+<section id="allListings" aria-label="All marketplace listings">
+<style>
+#allListings .all-listing-tools{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 16px}
+#allListings .all-listing-tools button,#allListings .all-listing-tools select{border:1px solid #d5deea;background:#fff;color:#31445c;border-radius:999px;padding:9px 13px;font:inherit;font-size:13px;font-weight:750}
+#allListings .all-listing-tools button.selected{background:#0757d9;border-color:#0757d9;color:white}
+#allListings .all-listing-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+#allListings .all-listing-card{background:#fff;border:1px solid #e0e7ef;border-radius:14px;overflow:hidden;min-width:0;display:flex;flex-direction:column}
+#allListings .all-listing-photo{height:165px;background:#f3f6fa;display:grid;place-items:center;color:#73849b;font-size:45px}
+#allListings .all-listing-photo img{width:100%;height:100%;object-fit:contain}
+#allListings .all-listing-body{padding:12px;display:flex;flex:1;flex-direction:column;gap:7px}
+#allListings .all-listing-type{align-self:flex-start;font-size:11px;font-weight:800;border-radius:20px;padding:5px 8px;background:#eaf2ff;color:#0757d9}
+#allListings .all-listing-type.used{background:#e9f8ed;color:#24743a}
+#allListings .all-listing-type.animal{background:#fff3df;color:#915700}
+#allListings .all-listing-type.fruit{background:#e8f8e9;color:#24743a}
+#allListings .all-listing-body h3{font-size:15px;line-height:1.35;margin:0;overflow-wrap:anywhere}
+#allListings .all-listing-price{font-size:20px;font-weight:900}
+#allListings .all-listing-meta{font-size:12px;line-height:1.45;color:#66758a}
+#allListings .all-listing-actions{display:flex;gap:7px;margin-top:auto;padding-top:5px}
+#allListings .all-listing-actions a{flex:1;text-align:center;text-decoration:none;border-radius:9px;padding:9px 6px;font-size:12px;font-weight:800;background:#0757d9;color:white}
+#allListings .all-listing-empty{grid-column:1/-1;text-align:center;padding:26px 14px;background:white;border:1px solid #e1e8f0;border-radius:12px;color:#63748a}
+@media(max-width:900px){#allListings .all-listing-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:600px){#allListings .all-listing-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}#allListings .all-listing-photo{height:130px}#allListings .all-listing-body{padding:9px}#allListings .all-listing-price{font-size:18px}#allListings .all-listing-actions{flex-direction:column}}
+</style>
+<div class="all-listing-tools" aria-label="Filter all listings">
+<button type="button" class="selected" data-all-kind="all">All Products</button>
+<button type="button" data-all-kind="regular">Regular</button>
+<button type="button" data-all-kind="fruit">Fruits 🍎</button>
+<button type="button" data-all-kind="used">Second-hand</button>
+<button type="button" data-all-kind="animal">Animals</button>
+<select id="allListingsSort" aria-label="Sort all listings"><option value="new">Newest first</option><option value="low">Price: low to high</option><option value="high">Price: high to low</option></select>
+</div>
+<div id="allListingsGrid" class="all-listing-grid" aria-live="polite"><div class="all-listing-empty">Loading all RETAIL listings…</div></div>
+</section>
+
 <section class="shopping-benefits" aria-label="Shopping benefits"><article><span class="benefit-icon">🚚</span><div><b>Easy ordering</b><p>Browse products and order from your phone.</p></div></article><article><span class="benefit-icon">💵</span><div><b>Cash on Delivery</b><p>Pay when your order arrives.</p></div></article><article><span class="benefit-icon">🛍️</span><div><b>More to explore</b><p>Discover items across available categories.</p></div></article></section><section class="how-retail"><div><span class="eyebrow">Simple shopping</span><h2>Your next find is just a few taps away</h2><p>Search for an item, open its product page to check the details, then add it to your cart or choose Buy Now.</p></div><button class="primary" id="shopNowBottom" type="button">Browse products</button></section><footer><b>RETAIL</b><span>Cash on Delivery only</span><a href="privacy-policy.html">Privacy Policy</a></footer>
 </main>
 <dialog id="modal"><form method="dialog" class="modalbox"><button class="close" aria-label="Close">×</button><div id="modalBody"></div></form></dialog>
@@ -32,4 +68,55 @@
 (function(){var splash=document.getElementById('retailWelcomeSplash');function hideSplash(){if(splash)splash.classList.add('splash-hidden')}window.setTimeout(hideSplash,2000);window.addEventListener('pageshow',function(){window.setTimeout(hideSplash,2000)},{once:true});})();
 </script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="app.js?v=20261024-stock-price-checkout-fix"></script>
+<script>
+(function(){
+ const dbAll=window.supabase.createClient("https://oebapdfkaumpmwdblqbv.supabase.co","sb_publishable_wmNek6qB6MCiPIJzueJhVQ_7-6d42yl");
+ const el=id=>document.getElementById(id);let rows=[],filter="all";
+ const escAll=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+ const moneyAll=n=>"₹"+Number(n||0).toLocaleString("en-IN");
+ const digitsAll=s=>String(s||"").replace(/\D/g,"");
+ const isFruit=p=>/fruit|fruits|produce/i.test(String(p.category||""))||/apple|banana|mango|orange|grape|watermelon|pomegranate|papaya|guava|pineapple|pear|kiwi|fruit/i.test(String(p.title||""));
+ function waAll(phone,msg){const n=digitsAll(phone);return n?"https://wa.me/"+n+"?text="+encodeURIComponent(msg):""}
+ function cardAll(x){
+  const label=x.kind==="used"?"Second-hand":x.kind==="animal"?"Animal":x.kind==="fruit"?"Fruits":"Regular product";
+  const cls=x.kind==="used"?"used":x.kind==="animal"?"animal":x.kind==="fruit"?"fruit":"";
+  const fallback=x.kind==="animal"?"🐄":x.kind==="used"?"♻️":x.kind==="fruit"?"🍎":"🛍️";
+  const photo=x.image?'<img src="'+escAll(x.image)+'" alt="'+escAll(x.title)+'" loading="lazy" onerror="this.parentElement.textContent=\''+fallback+'\'">':fallback;
+  let action="";
+  if(x.type==="product")action='<a href="#product/'+encodeURIComponent(x.id)+'">View product</a>';
+  else {const msg=(x.kind==="animal"?"Hello, I am interested in your RETAIL animal listing: ":"Hi, I am interested in your RETAIL second-hand listing: ")+x.title+" ("+moneyAll(x.price)+"). Is it available?";const u=waAll(x.phone,msg);action=u?'<a target="_blank" rel="noopener" href="'+escAll(u)+'">Contact seller</a>':'<a href="'+(x.kind==="animal"?"animal-marketplace.html":"second-hand.html")+'">View listing</a>'}
+  return '<article class="all-listing-card"><div class="all-listing-photo">'+photo+'</div><div class="all-listing-body"><span class="all-listing-type '+cls+'">'+label+'</span><h3>'+escAll(x.title)+'</h3><div class="all-listing-price">'+moneyAll(x.price)+'</div><div class="all-listing-meta">'+escAll([x.category,x.city,x.condition,x.brand,x.breed].filter(Boolean).join(" · "))+'</div><div class="all-listing-actions">'+action+'</div></div></article>';
+ }
+ function drawAll(){
+  const sort=el("allListingsSort").value;
+  let visible=rows.filter(x=>filter==="all"||(filter==="regular"&&x.kind==="regular")||(filter==="fruit"&&x.kind==="fruit")||x.kind===filter);
+  if(sort==="low")visible.sort((a,b)=>a.price-b.price);else if(sort==="high")visible.sort((a,b)=>b.price-a.price);else visible.sort((a,b)=>new Date(b.createdAt||0)-new Date(a.createdAt||0));
+  el("allListingsCount").textContent=visible.length+" shown · "+rows.length+" total";
+  el("allListingsGrid").innerHTML=visible.map(cardAll).join("")||'<div class="all-listing-empty">No active listings in this section yet.</div>';
+ }
+ async function loadAll(){
+  try{
+   const results=await Promise.all([
+    dbAll.from("categories").select("id,name,slug").order("name"),
+    dbAll.from("products").select("id,title,description,price,mrp,sale_price,brand,stock,image_url,status,category_id,created_at").eq("status","active").order("created_at",{ascending:false}).limit(200),
+    dbAll.from("second_hand_listings").select("id,title,description,price,item_condition,image_url,city,seller_name,seller_phone,status,created_at").eq("status","active").order("created_at",{ascending:false}).limit(200),
+    dbAll.from("animal_listings").select("id,title,animal_type,description,price,breed,age,image_url,city,seller_name,seller_phone,status,created_at").eq("status","active").order("created_at",{ascending:false}).limit(200)
+   ]);
+   const [c,p,u,a]=results;
+   const categories=c.error?[]:(c.data||[]),products=p.error?[]:(p.data||[]),used=u.error?[]:(u.data||[]),animals=a.error?[]:(a.data||[]);
+   rows=[
+    ...products.map(x=>{const category=categories.find(y=>y.id===x.category_id)?.name||"Product";return {type:"product",kind:isFruit({...x,category})?"fruit":"regular",id:x.id,title:x.title,price:Number(x.sale_price??x.price??0),image:x.image_url,category,brand:x.brand,createdAt:x.created_at}}),
+    ...used.map(x=>({type:"used",kind:"used",id:x.id,title:x.title,price:Number(x.price||0),image:x.image_url,category:"Second-hand",condition:x.item_condition,city:x.city,phone:x.seller_phone,createdAt:x.created_at})),
+    ...animals.map(x=>({type:"animal",kind:"animal",id:x.id,title:x.title,price:Number(x.price||0),image:x.image_url,category:x.animal_type||"Animal",breed:x.breed,city:x.city,phone:x.seller_phone,createdAt:x.created_at}))
+   ];
+   const failed=[c,p,u,a].some(x=>x.error);
+   if(failed)console.warn("RETAIL All Products section partial load", [c.error,p.error,u.error,a.error].filter(Boolean));
+   drawAll();
+  }catch(e){console.error("RETAIL all listings failed",e);el("allListingsGrid").innerHTML='<div class="all-listing-empty">Could not load all listings. Please refresh and try again.</div>'}
+ }
+ document.querySelectorAll("[data-all-kind]").forEach(b=>b.addEventListener("click",()=>{filter=b.dataset.allKind;document.querySelectorAll("[data-all-kind]").forEach(x=>x.classList.toggle("selected",x===b));drawAll()}));
+ el("allListingsSort").addEventListener("change",drawAll);
+ loadAll();
+})();
+</script>
 </body></html>
