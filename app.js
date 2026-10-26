@@ -199,7 +199,7 @@ async function myOrders(){
  body.innerHTML="<h3>My Orders</h3>"+(orders.map(o=>{
   const s=String(o.status||"placed").toLowerCase(),info=statusInfo[s]||[s.charAt(0).toUpperCase()+s.slice(1),"Order status updated."];
   const tone=s==="delivered"?"#16803c":s==="cancelled"?"#c62828":s==="shipped"?"#0757c9":"#8a5a00";
-  return `<div class="order"><b>${esc(o.order_number)}</b><span class="status" style="display:inline-block;margin-left:8px;padding:4px 9px;border-radius:999px;background:${tone}18;color:${tone};font-weight:700">${s==="delivered"?"✓ ":s==="cancelled"?"✕ ":""}${esc(info[0])}</span><div>${new Date(o.created_at).toLocaleString("en-IN")} · COD · ${money(o.subtotal)}</div><small>${(o.order_items||[]).map(i=>esc(i.product_title)+" × "+i.quantity).join(", ")}</small><p style="margin:7px 0 0;color:#555;font-size:13px">${esc(info[1])}</p></div>`;
+  return `<div class="order"><b>${esc(o.order_number)}</b><span class="status" style="display:inline-block;margin-left:8px;padding:4px 9px;border-radius:999px;background:${tone}18;color:${tone};font-weight:700">${s==="delivered"?"✓ ":s==="cancelled"?"✕ ":""}${esc(info[0])}</span><div>${new Date(o.created_at).toLocaleString("en-IN")} · COD · ${money(o.subtotal)}</div><small>${(o.order_items||[]).map(i=>esc(i.product_title)+" × "+i.quantity).join(", ")}</small><p style="margin:7px 0 0;color:#555;font-size:13px">${esc(info[1])}</p>${o.delivery_address?.latitude!=null&&o.delivery_address?.longitude!=null?`<p><a target="_blank" rel="noopener" href="${mapLink(o.delivery_address.latitude,o.delivery_address.longitude)}">📍 View delivery route</a></p>`:""}</div>`;
  }).join("")||"<p>No orders yet.</p>")+"<button class='dash wide' id='refreshOrders' type='button'>Refresh order status</button>";
  $("refreshOrders").onclick=myOrders;
 }
@@ -392,7 +392,7 @@ async function sellerOrders(){
   return `<article class="order" style="margin:10px 0;padding:14px;border:1px solid var(--border,#ddd);border-radius:12px">
    <b>${esc(o.order_number)}</b> <span class="status">${esc(String(o.status||"placed").toUpperCase())}</span>
    <p><b>Customer:</b> ${esc(o.delivery_address?.name||"Customer")} · ${esc(o.delivery_address?.phone||"")}</p>
-   <p><b>Delivery address:</b> ${esc(o.delivery_address?.address||"Not provided")}</p>
+   <p><b>Delivery address:</b> ${esc(o.delivery_address?.address||"Not provided")}</p>${o.delivery_address?.latitude!=null&&o.delivery_address?.longitude!=null?`<p><a target="_blank" rel="noopener" href="${mapLink(o.delivery_address.latitude,o.delivery_address.longitude)}">📍 Open customer delivery location</a></p>`:""}
    <div>${o.ownItems.map(i=>`<div class="lineitem"><span>${esc(i.product_title)} × ${Number(i.quantity)}</span><b>${money(Number(i.unit_price)*Number(i.quantity))}</b></div>`).join("")}</div>
    <div class="lineitem"><span>Estimated seller amount (after 10% commission)</span><b>${money(total)}</b></div>
    <small>${new Date(o.created_at).toLocaleString("en-IN")} · ${esc(String(o.payment_method||"cod").toUpperCase())} · Payment: ${esc(o.payment_status||"pending")}</small>
@@ -457,7 +457,7 @@ async function adminOrderDetail(orderId){
  <h3>Customer details</h3>
  <p><b>Name:</b> ${esc(address.name||"Not provided")}</p>
  <p><b>Mobile:</b> ${esc(address.phone||"Not provided")}</p>
- <p><b>Address:</b> ${esc(address.address||"Not provided")}</p>
+ <p><b>Address:</b> ${esc(address.address||"Not provided")}</p>${address.latitude!=null&&address.longitude!=null?`<p><a target="_blank" rel="noopener" href="${mapLink(address.latitude,address.longitude)}">📍 Open delivery route in Google Maps</a></p>`:""}
  <hr>
  <h3>Products ordered</h3>
  ${(o.order_items||[]).map(i=>`<div class="lineitem"><span>${esc(i.product_title)} × ${Number(i.quantity||0)}</span><b>${money(Number(i.unit_price||0)*Number(i.quantity||0))}</b></div>`).join("")||"<p>Product details unavailable.</p>"}
