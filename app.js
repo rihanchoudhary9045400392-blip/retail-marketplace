@@ -293,8 +293,8 @@ function showProduct(id,buy=false){
  $("backProducts").onclick=()=>showCatalogue(true);
  $("detailAdd").onclick=()=>addToCart(p.id);
  $("detailBuy").onclick=()=>checkout([{id:p.id,title:p.title,price:price(p),image_url:p.image_url,seller_id:p.seller_id,qty:1}]);
- page.querySelectorAll("[data-related-open]").forEach(b=>b.onclick=()=>showProduct(b.dataset.relatedOpen));
- page.querySelectorAll("[data-related-product]").forEach(card=>card.onclick=e=>{if(!e.target.closest("button"))showProduct(card.dataset.relatedProduct)});
+ page.querySelectorAll("[data-related-open]").forEach(b=>b.onclick=e=>{e.preventDefault();e.stopPropagation();const id=b.dataset.relatedOpen;if(id&&String(id)!==String(p.id))showProduct(id)});
+ page.querySelectorAll("[data-related-product]").forEach(card=>{card.style.cursor="pointer";card.setAttribute("role","link");card.setAttribute("tabindex","0");card.onclick=e=>{if(e.target.closest("button,a,input,select,textarea"))return;const id=card.dataset.relatedProduct;if(id&&String(id)!==String(p.id))showProduct(id)};card.onkeydown=e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();const id=card.dataset.relatedProduct;if(id&&String(id)!==String(p.id))showProduct(id)}}});
  if(buy) $("detailBuy").click();
 }
 function showCatalogue(clearHash=false){
