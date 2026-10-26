@@ -11,10 +11,13 @@
 @keyframes retailSplashPop{from{transform:scale(.65);opacity:0}to{transform:scale(1);opacity:1}}
 @keyframes retailSplashPulse{0%{transform:scale(.72);opacity:.5}100%{transform:scale(1.18);opacity:0}}
 @media(prefers-reduced-motion:reduce){#retailWelcomeSplash::before,#retailWelcomeSplash::after,#retailWelcomeSplash .splash-logo{animation:none}}
-.all-market-promo{grid-column:1/-1;display:flex;align-items:center;gap:12px;padding:13px 16px;border:1px solid #b9d1ff;border-radius:14px;background:linear-gradient(110deg,#e8f1ff,#fff);color:#18271f;text-decoration:none;box-shadow:0 3px 12px #0757d90b}.all-market-promo:hover{border-color:#0757d9}.all-market-icon{display:grid;place-items:center;width:48px;height:48px;flex-shrink:0;border-radius:12px;background:#0757d9;color:white;font-size:25px}.all-market-promo .used-market-copy{display:flex;flex:1;min-width:0;flex-direction:column;gap:4px}.all-market-promo .used-market-copy strong{font-size:16px}.all-market-promo .used-market-copy small{font-size:12px;color:#617087}.all-market-promo .used-market-arrow{font-size:22px;color:#0757d9}@media(max-width:560px){.all-market-promo{padding:10px;gap:9px}.all-market-icon{width:42px;height:42px}.all-market-promo .used-market-copy strong{font-size:14px}.all-market-promo .used-market-copy small{font-size:11px;line-height:1.4}}</style></head>
+.all-market-promo{grid-column:1/-1;display:flex;align-items:center;gap:12px;padding:13px 16px;border:1px solid #b9d1ff;border-radius:14px;background:linear-gradient(110deg,#e8f1ff,#fff);color:#18271f;text-decoration:none;box-shadow:0 3px 12px #0757d90b}.all-market-promo:hover{border-color:#0757d9}.all-market-icon{display:grid;place-items:center;width:48px;height:48px;flex-shrink:0;border-radius:12px;background:#0757d9;color:white;font-size:25px}.all-market-promo .used-market-copy{display:flex;flex:1;min-width:0;flex-direction:column;gap:4px}.all-market-promo .used-market-copy strong{font-size:16px}.all-market-promo .used-market-copy small{font-size:12px;color:#617087}.all-market-promo .used-market-arrow{font-size:22px;color:#0757d9}@media(max-width:560px){.all-market-promo{padding:10px;gap:9px}.all-market-icon{width:42px;height:42px}.all-market-promo .used-market-copy strong{font-size:14px}.all-market-promo .used-market-copy small{font-size:11px;line-height:1.4}}</style><style>
+/* Keep all marketplace listings together; selling tools sit in a separate side panel. */
+.all-market-layout{display:grid;grid-template-columns:minmax(0,1fr) 245px;gap:18px;align-items:start;margin:20px 0 30px}.all-market-main{min-width:0}.all-market-layout #allListings .all-listing-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.retail-sell-hub{display:flex;flex-direction:column;gap:10px;position:sticky;top:12px;padding:13px;background:#f7faff;border:1px solid #dce7f7;border-radius:14px}.retail-sell-hub>div{margin-bottom:4px}.retail-sell-hub a{display:flex;align-items:center;gap:9px;padding:11px;background:#fff;border:1px solid #dce5f1;border-radius:10px;text-decoration:none;color:#172b44;min-width:0}.retail-sell-hub .sell-hub-icon{display:grid;place-items:center;width:38px;height:38px;flex:0 0 38px;border-radius:10px;background:#edf4ff;font-size:21px}.retail-sell-hub .sell-hub-copy{display:flex;flex-direction:column;gap:4px;min-width:0}.retail-sell-hub strong{font-size:13px}.retail-sell-hub small{font-size:10px;line-height:1.4;color:#6c7b90}.retail-sell-hub a:hover{border-color:#0757d9}.search{position:relative}.retail-search-suggestions{position:absolute;z-index:500;left:0;right:0;top:calc(100% + 5px);display:none;max-height:320px;overflow:auto;background:#fff;border:1px solid #d6e1ef;border-radius:12px;box-shadow:0 12px 32px #102b4b22}.retail-search-suggestions.open{display:block}.retail-search-suggestions button{display:block;width:100%;padding:11px 13px;border:0;border-bottom:1px solid #eef2f7;background:#fff;text-align:left;color:#1d2e44;font:inherit;cursor:pointer}.retail-search-suggestions button:hover,.retail-search-suggestions button:focus{background:#edf4ff}.retail-search-suggestions small{display:block;color:#74839a;font-size:11px;margin-top:3px}@media(max-width:900px){.all-market-layout{grid-template-columns:minmax(0,1fr) 205px;gap:10px}.all-market-layout #allListings .all-listing-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:700px){.all-market-layout{grid-template-columns:1fr}.retail-sell-hub{position:static;order:-1}.retail-sell-hub>div{grid-column:1/-1}.retail-sell-hub{display:grid;grid-template-columns:1fr}.all-market-layout #allListings .all-listing-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+</style></head>
 <body>
 <div id="retailWelcomeSplash" role="status" aria-label="Welcome to Retail"><img class="splash-logo" src="retail-logo.svg?v=4" alt=""><div class="splash-title">RETAIL</div><div class="splash-sub">Welcome to your marketplace</div></div>
-<header class="top"><a class="brand" href="#"><img class="brand-logo" src="retail-logo.svg?v=4" alt="Retail logo"> RETAIL</a><div class="search"><input id="search" placeholder="Search products, brands and more"><button id="searchBtn">Search</button></div><button class="navbtn" id="loginBtn">Login</button><button class="navbtn" id="cartBtn">Cart <b id="cartCount">0</b></button><button class="navbtn" id="accountBtn" hidden>Account</button><button class="navbtn" id="adminNavBtn" hidden>Admin</button></header>
+<header class="top"><a class="brand" href="#"><img class="brand-logo" src="retail-logo.svg?v=4" alt="Retail logo"> RETAIL</a><div class="search"><input id="search" placeholder="Search products, brands and more" autocomplete="off" aria-autocomplete="list" aria-controls="retailSearchSuggestions"><div id="retailSearchSuggestions" class="retail-search-suggestions" role="listbox"></div><button id="searchBtn">Search</button></div><button class="navbtn" id="loginBtn">Login</button><button class="navbtn" id="cartBtn">Cart <b id="cartCount">0</b></button><button class="navbtn" id="accountBtn" hidden>Account</button><button class="navbtn" id="adminNavBtn" hidden>Admin</button></header>
 <nav class="cats" id="cats"></nav>
 <main>
 <section class="marketplace-shortcuts" aria-label="Explore RETAIL marketplaces">
@@ -22,26 +25,12 @@
 <a class="used-market-promo" href="second-hand.html"><span class="marketplace-photo-grid" aria-label="Different second-hand products"><img src="https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=160&q=75" alt="Shoes"><img src="https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=160&q=75" alt="Headphones"><img src="https://images.unsplash.com/photo-1553062407-98eeb64c6a62?auto=format&fit=crop&w=160&q=75" alt="Bag"><img src="https://images.unsplash.com/photo-1511708171634-2f91d5a5a3b9?auto=format&fit=crop&w=160&q=75" alt="Mobile phone"></span><span class="used-market-copy"><strong>Second-hand</strong><small>Used products · Buy or sell</small></span><span class="used-market-arrow" aria-hidden="true">↗</span></a>
 <a class="used-market-promo animal-market-promo" href="animal-marketplace.html"><img class="marketplace-photo" src="https://images.unsplash.com/photo-1751911383039-d17dff424d3b?auto=format&fit=crop&w=500&q=85&v=2" alt="Cow and calf standing together in a green field"><span class="used-market-copy"><strong>Animal Marketplace</strong><small>Cows · Buffaloes · Goats · Birds</small></span><span class="used-market-arrow" aria-hidden="true">↗</span></a>
 </section>
-<section class="retail-sell-hub" aria-label="Separate selling options">
-<style>
-.retail-sell-hub{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:14px 0 24px}
-.retail-sell-hub a{display:flex;align-items:center;gap:12px;padding:15px;background:#fff;border:1px solid #dce5f1;border-radius:13px;text-decoration:none;color:#172b44;min-width:0}
-.retail-sell-hub .sell-hub-icon{display:grid;place-items:center;width:46px;height:46px;flex:0 0 46px;border-radius:12px;background:#edf4ff;font-size:24px}
-.retail-sell-hub .sell-hub-copy{display:flex;flex-direction:column;gap:4px;min-width:0}
-.retail-sell-hub strong{font-size:14px}.retail-sell-hub small{font-size:11px;line-height:1.4;color:#6c7b90}
-.retail-sell-hub a:hover{border-color:#0757d9;box-shadow:0 5px 18px #0757d910}
-@media(max-width:700px){.retail-sell-hub{grid-template-columns:1fr}.retail-sell-hub a{padding:12px}}
-</style>
-<div style="grid-column:1/-1"><span class="eyebrow">Separate selling options</span><h2 style="margin:5px 0 0">What do you want to sell?</h2></div>
-<a href="sell-second-hand.html"><span class="sell-hub-icon">♻️</span><span class="sell-hub-copy"><strong>Sell Second-hand</strong><small>Used items only · Separate listing form</small></span></a>
-<a href="sell-animal.html"><span class="sell-hub-icon">🐄</span><span class="sell-hub-copy"><strong>Sell an Animal</strong><small>Animals and livestock · Separate listing form</small></span></a>
-<a href="https://veggiemart-fresh-3cojfxb3u-rihanchoudhary9045400392-4494.vercel.app/" id="veggieMartSellLink"><span class="sell-hub-icon">🥬</span><span class="sell-hub-copy"><strong>VeggieMart Sell</strong><small>Fruits and vegetables · Separate marketplace</small></span></a>
-</section>
+
 <p style="text-align:center;margin:10px 0 18px"><a href="more-products.html" style="font-size:13px;font-weight:700;color:#0757d9;text-decoration:none">Looking for cosmetics, clothes or other products? Explore More Categories ↗</a></p>
 <section class="sectionhead" id="catalogHeading"><div><span class="eyebrow">Live catalogue</span><h2>Popular products</h2></div><span class="muted" id="resultCount">Loading…</span></section>
 <section class="products" id="products"></section><section id="productPage" hidden></section>
 
-<section class="sectionhead" id="allListingsHeading"><div><span class="eyebrow">One place · Every listing</span><h2>All Products</h2><p class="muted" style="margin:6px 0 0">Regular products, fruits, second-hand items and animals — all together</p></div><span class="muted" id="allListingsCount">Loading…</span></section>
+<div class="all-market-layout"><div class="all-market-main"><section class="sectionhead" id="allListingsHeading"><div><span class="eyebrow">One place · Every listing</span><h2>All Products</h2><p class="muted" style="margin:6px 0 0">Regular products, fruits, second-hand items and animals — all together</p></div><span class="muted" id="allListingsCount">Loading…</span></section>
 <section id="allListings" aria-label="All marketplace listings">
 <style>
 #allListings .all-listing-tools{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 16px}
@@ -74,7 +63,14 @@
 <select id="allListingsSort" aria-label="Sort all listings"><option value="new">Newest first</option><option value="low">Price: low to high</option><option value="high">Price: high to low</option></select>
 </div>
 <div id="allListingsGrid" class="all-listing-grid" aria-live="polite"><div class="all-listing-empty">Loading all RETAIL listings…</div></div>
-</section>
+</section></div><aside class="retail-sell-hub" aria-label="Separate selling options">
+
+<div style="grid-column:1/-1"><span class="eyebrow">Separate selling options</span><h2 style="margin:5px 0 0">What do you want to sell?</h2></div>
+<a href="sell-second-hand.html"><span class="sell-hub-icon">♻️</span><span class="sell-hub-copy"><strong>Sell Second-hand</strong><small>Used items only · Separate listing form</small></span></a>
+<a href="sell-animal.html"><span class="sell-hub-icon">🐄</span><span class="sell-hub-copy"><strong>Sell an Animal</strong><small>Animals and livestock · Separate listing form</small></span></a>
+<a href="https://veggiemart-fresh-3cojfxb3u-rihanchoudhary9045400392-4494.vercel.app/" id="veggieMartSellLink"><span class="sell-hub-icon">🥬</span><span class="sell-hub-copy"><strong>VeggieMart Sell</strong><small>Fruits and vegetables · Separate marketplace</small></span></a>
+</aside>
+</div>
 
 <section class="shopping-benefits" aria-label="Shopping benefits"><article><span class="benefit-icon">🚚</span><div><b>Easy ordering</b><p>Browse products and order from your phone.</p></div></article><article><span class="benefit-icon">💵</span><div><b>Cash on Delivery</b><p>Pay when your order arrives.</p></div></article><article><span class="benefit-icon">🛍️</span><div><b>More to explore</b><p>Discover items across available categories.</p></div></article></section><section class="how-retail"><div><span class="eyebrow">Simple shopping</span><h2>Your next find is just a few taps away</h2><p>Search for an item, open its product page to check the details, then add it to your cart or choose Buy Now.</p></div><button class="primary" id="shopNowBottom" type="button">Browse products</button></section><footer><b>RETAIL</b><span>Cash on Delivery only</span><a href="privacy-policy.html">Privacy Policy</a></footer>
 </main>
@@ -82,7 +78,7 @@
 <script>
 (function(){var splash=document.getElementById('retailWelcomeSplash');function hideSplash(){if(splash)splash.classList.add('splash-hidden')}window.setTimeout(hideSplash,2000);window.addEventListener('pageshow',function(){window.setTimeout(hideSplash,2000)},{once:true});})();
 </script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="app.js?v=20261024-stock-price-checkout-fix"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="app.js?v=20261026-fuzzy-search-suggestions"></script>
 <script>
 (function(){
  const dbAll=window.supabase.createClient("https://oebapdfkaumpmwdblqbv.supabase.co","sb_publishable_wmNek6qB6MCiPIJzueJhVQ_7-6d42yl");
@@ -102,9 +98,16 @@
   else {const msg=(x.kind==="animal"?"Hello, I am interested in your RETAIL animal listing: ":"Hi, I am interested in your RETAIL second-hand listing: ")+x.title+" ("+moneyAll(x.price)+"). Is it available?";const u=waAll(x.phone,msg);action=u?'<a target="_blank" rel="noopener" href="'+escAll(u)+'">Contact seller</a>':'<a href="'+(x.kind==="animal"?"animal-marketplace.html":"second-hand.html")+'">View listing</a>'}
   return '<article class="all-listing-card"><div class="all-listing-photo">'+photo+'</div><div class="all-listing-body"><span class="all-listing-type '+cls+'">'+label+'</span><h3>'+escAll(x.title)+'</h3><div class="all-listing-price">'+moneyAll(x.price)+'</div><div class="all-listing-meta">'+escAll([x.category,x.city,x.condition,x.brand,x.breed].filter(Boolean).join(" · "))+'</div><div class="all-listing-actions">'+action+'</div></div></article>';
  }
+ function normalizeSearch(s){return String(s||"").toLowerCase().normalize("NFD").replace(/[\\u0300-\\u036f]/g,"").replace(/[^a-z0-9\\s]/g," ").replace(/\\s+/g," ").trim()}
+ function editDistance(a,b){if(Math.abs(a.length-b.length)>3)return 99;let prev=Array.from({length:b.length+1},(_,i)=>i);for(let i=1;i<=a.length;i++){let cur=[i];for(let j=1;j<=b.length;j++)cur[j]=Math.min(cur[j-1]+1,prev[j]+1,prev[j-1]+(a[i-1]===b[j-1]?0:1));prev=cur}return prev[b.length]}
+ function matchesSearch(text,q){q=normalizeSearch(q);if(!q)return true;const hay=normalizeSearch(text);if(hay.includes(q))return true;return q.split(" ").every(t=>hay.split(" ").some(w=>w.startsWith(t)||editDistance(t,w)<=Math.max(1,Math.floor(t.length/4))))}
+ const searchInput=el("search"),suggestions=el("retailSearchSuggestions");
+ function updateSuggestions(){if(!searchInput||!suggestions)return;const q=searchInput.value.trim();if(!q){suggestions.classList.remove("open");suggestions.innerHTML="";return}const seen=new Set(),items=[];for(const x of rows){if(matchesSearch([x.title,x.category,x.brand,x.breed].filter(Boolean).join(" "),q)){const key=x.title+"|"+x.kind;if(!seen.has(key)){seen.add(key);items.push(x)}}if(items.length>=7)break}const exact=items.length?items:rows.filter(x=>normalizeSearch(x.title).split(" ").some(w=>editDistance(w,normalizeSearch(q))<=Math.max(1,Math.floor(normalizeSearch(q).length/3)))).slice(0,7);suggestions.innerHTML=exact.map(x=>'<button type="button" role="option" data-suggest="'+escAll(x.title)+'">'+escAll(x.title)+'<small>'+escAll(x.kind==="used"?"Second-hand":x.kind==="animal"?"Animal":x.kind==="fruit"?"Fruits":"Regular product")+' · '+moneyAll(x.price)+'</small></button>').join("");suggestions.classList.toggle("open",exact.length>0)}
+ if(searchInput){searchInput.addEventListener("input",()=>{updateSuggestions();drawAll()});searchInput.addEventListener("focus",updateSuggestions);searchInput.addEventListener("keydown",e=>{if(e.key==="Escape")suggestions?.classList.remove("open");if(e.key==="Enter"){suggestions?.classList.remove("open");drawAll()}});document.addEventListener("click",e=>{if(!e.target.closest(".search"))suggestions?.classList.remove("open")})}
+ if(suggestions)suggestions.addEventListener("click",e=>{const b=e.target.closest("[data-suggest]");if(!b)return;searchInput.value=b.dataset.suggest;suggestions.classList.remove("open");if(typeof render==="function")render();drawAll();el("allListingsHeading")?.scrollIntoView({behavior:"smooth",block:"start"})});
  function drawAll(){
-  const sort=el("allListingsSort").value;
-  let visible=rows.filter(x=>filter==="all"||(filter==="regular"&&x.kind==="regular")||(filter==="fruit"&&x.kind==="fruit")||x.kind===filter);
+  const sort=el("allListingsSort").value,q=searchInput?.value.trim()||"";
+  let visible=rows.filter(x=>(filter==="all"||(filter==="regular"&&x.kind==="regular")||(filter==="fruit"&&x.kind==="fruit")||x.kind===filter)&&(!q||matchesSearch([x.title,x.category,x.brand,x.breed,x.city,x.condition].filter(Boolean).join(" "),q)));
   if(sort==="low")visible.sort((a,b)=>a.price-b.price);else if(sort==="high")visible.sort((a,b)=>b.price-a.price);else visible.sort((a,b)=>new Date(b.createdAt||0)-new Date(a.createdAt||0));
   el("allListingsCount").textContent=visible.length+" shown · "+rows.length+" total";
   el("allListingsGrid").innerHTML=visible.map(cardAll).join("")||'<div class="all-listing-empty">No active listings in this section yet.</div>';
@@ -126,7 +129,7 @@
    ];
    const failed=[c,p,u,a].some(x=>x.error);
    if(failed)console.warn("RETAIL All Products section partial load", [c.error,p.error,u.error,a.error].filter(Boolean));
-   drawAll();
+   drawAll();updateSuggestions();
   }catch(e){console.error("RETAIL all listings failed",e);el("allListingsGrid").innerHTML='<div class="all-listing-empty">Could not load all listings. Please refresh and try again.</div>'}
  }
  document.querySelectorAll("[data-all-kind]").forEach(b=>b.addEventListener("click",()=>{filter=b.dataset.allKind;document.querySelectorAll("[data-all-kind]").forEach(x=>x.classList.toggle("selected",x===b));drawAll()}));
