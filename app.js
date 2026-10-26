@@ -287,7 +287,26 @@ async function productForm(id){
  if(p?.image_url){try{let u=new URL(p.image_url);let marker="/product-images/";let i=u.pathname.indexOf(marker);if(i>=0)await db.storage.from("product-images").remove([decodeURIComponent(u.pathname.slice(i+marker.length))])}catch(e){}}
  await load();sellerProducts()
 }
-async function sellerOrders(){let r=await db.from("orders").select("id,order_number,status,subtotal,delivery_address,created_at,order_items(product_title,unit_price,quantity,seller_id,seller_amount)").order("created_at",{ascending:false});$("sellerBody").innerHTML=(r.data||[]).filter(o=>(o.order_items||[]).some(i=>i.seller_id===user.id)).map(o=>`<div class="order"><b>${esc(o.order_number)}</b> · ${esc(o.status)} · ${money(o.subtotal)}<br><small>${esc(o.delivery_address?.name||"")} · ${esc(o.delivery_address?.phone||"")} · ${esc(o.delivery_address?.address||"")}</small></div>`).join("")||"<p>No seller orders.</p>"}
+async function sellerOrders(){
+ const host=$("sellerBody");
+ if(!host){modal("<h2>My Store Orders</h2><div id='sellerBody'>Loading orders…</div>");}
+ const target=$("sellerBody");target.innerHTML="<p>Loading your store orders…</p>";
+ const r=await db.from("orders").select("id,order_number,status,payment_method,payment_status,subtotal,delivery_address,created_at,order_items(product_title,unit_price,quantity,seller_id,seller_amount)").order("created_at",{ascending:false});
+ if(r.error){target.innerHTML="<p class='notice'>Could not load seller orders: "+esc(r.error.message)+"</p><button class='dash wide' id='sellerOrdersRetry'>Try again</button>";$("sellerOrdersRetry").onclick=sellerOrders;return}
+ const orders=(r.data||[]).map(o=>({...o,ownItems:(o.order_items||[]).filter(i=>String(i.seller_id)===String(user.id))})).filter(o=>o.ownItems.length);
+ target.innerHTML=orders.map(o=>{
+  const total=o.ownItems.reduce((sum,i)=>sum+Number(i.seller_amount??Number(i.unit_price)*Number(i.quantity)*.9),0);
+  return `<article class="order" style="margin:10px 0;padding:14px;border:1px solid var(--border,#ddd);border-radius:12px">
+   <b>${esc(o.order_number)}</b> <span class="status">${esc(String(o.status||"placed").toUpperCase())}</span>
+   <p><b>Customer:</b> ${esc(o.delivery_address?.name||"Customer")} · ${esc(o.delivery_address?.phone||"")}</p>
+   <p><b>Delivery address:</b> ${esc(o.delivery_address?.address||"Not provided")}</p>
+   <div>${o.ownItems.map(i=>`<div class="lineitem"><span>${esc(i.product_title)} × ${Number(i.quantity)}</span><b>${money(Number(i.unit_price)*Number(i.quantity))}</b></div>`).join("")}</div>
+   <div class="lineitem"><span>Estimated seller amount (after 10% commission)</span><b>${money(total)}</b></div>
+   <small>${new Date(o.created_at).toLocaleString("en-IN")} · ${esc(String(o.payment_method||"cod").toUpperCase())} · Payment: ${esc(o.payment_status||"pending")}</small>
+  </article>`;
+ }).join("")||"<p>No orders for your store yet.</p>";
+ const refresh=document.createElement("button");refresh.className="dash wide";refresh.type="button";refresh.textContent="Refresh my store orders";refresh.onclick=sellerOrders;target.appendChild(refresh);
+}
 async function adminPanel(){
  if(profile?.role!=="admin"){toast("Admin access only");return}
  modal("<h2>Admin Dashboard</h2><div class='dashgrid'><button class='dash' id='admS'>Sellers</button><button class='dash' id='admP'>Products</button><button class='dash' id='admO'>Orders</button></div><div id='adminBody'></div>");$("admS").onclick=adminSellers;$("admP").onclick=adminProducts;$("admO").onclick=adminOrders}
