@@ -113,7 +113,7 @@ async function auth(){
   };
  }catch(err){console.error("RETAIL auth form failed:",err);alert("Could not open RETAIL login. Please refresh the page and try again.");}
 }
-async async function account(){
+async function account(){
  if(!user){auth();return}
  const isAdmin=profile?.role==="admin";
  if(isAdmin){
