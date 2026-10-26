@@ -28,7 +28,7 @@
 <a class="used-market-promo animal-market-promo" href="animal-marketplace.html"><img class="marketplace-photo" src="https://images.unsplash.com/photo-1751911383039-d17dff424d3b?auto=format&fit=crop&w=500&q=85&v=2" alt="Cow and calf standing together in a green field"><span class="used-market-copy"><strong>Animal Marketplace</strong><small>Cows · Buffaloes · Goats · Birds</small></span><span class="used-market-arrow" aria-hidden="true">↗</span></a>
 </section>
 
-<p style="text-align:center;margin:10px 0 18px"><a href="more-products.html" style="font-size:13px;font-weight:700;color:#0757d9;text-decoration:none">Looking for cosmetics, clothes or other products? Explore More Categories ↗</a></p>
+
 
 <section class="products" id="products"></section><section id="productPage" hidden></section>
 
@@ -141,7 +141,7 @@
   try{
    const results=await Promise.all([
     dbAll.from("categories").select("id,name,slug").order("name"),
-    dbAll.from("products").select("id,title,description,price,mrp,sale_price,brand,stock,image_url,status,category_id,created_at").eq("status","active").order("created_at",{ascending:false}).limit(200),
+    dbAll.from("products").select("id,title,description,price,mrp,sale_price,brand,stock,image_url,status,category_id,created_at").eq("status","active").order("created_at",{ascending:false}).limit(1000),
     dbAll.from("second_hand_listings").select("id,title,description,price,item_condition,image_url,city,seller_name,seller_phone,status,created_at").eq("status","active").order("created_at",{ascending:false}).limit(200),
     dbAll.from("animal_listings").select("id,title,animal_type,description,price,breed,age,image_url,city,seller_name,seller_phone,status,created_at").eq("status","active").order("created_at",{ascending:false}).limit(200)
    ]);
