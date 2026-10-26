@@ -10,7 +10,7 @@ function modal(h){$("modalBody").innerHTML=h;/* The modal is wrapped in a method
 function closeModal(){if($("modal").open)$("modal").close()}
 function syncAccountButtons(){ $("loginBtn").hidden=!!user; $("accountBtn").hidden=!user; const a=$("adminNavBtn"); if(a)a.hidden=!(user&&profile?.role==="admin"); }
 function off(p){let m=Number(p.mrp||p.price||0),s=Number(p.sale_price||p.price||0);return m>s?Math.round((m-s)*100/m):0}
-function saveCart(){localStorage.setItem("retail_cart",JSON.stringify(cart));$("cartCount").textContent=cart.reduce((n,x)=>n+x.qty,0)}
+function saveCart(){try{localStorage.setItem("retail_cart",JSON.stringify(cart))}catch(e){console.warn("RETAIL cart storage unavailable:",e)}const count=$("cartCount");if(count)count.textContent=cart.reduce((n,x)=>n+Number(x.qty||0),0)}
 function price(p){return Number(p.sale_price??p.price??0)}
 function renderCats(){let list=["All",...categories.map(c=>c.name).filter(Boolean)];$("cats").innerHTML=list.map(c=>`<button class="${active===c?"selected":""}" data-cat="${esc(c)}">${esc(c)}</button>`).join("")}
 function retailNormalize(s){return String(s||"").toLowerCase().replace(/[^a-z0-9 ]/g," ").split(" ").filter(Boolean).join(" ")}
