@@ -335,17 +335,18 @@ async function productForm(id){
  <button class="primary wide" id="saveProduct" type="button">Save Product</button><p id="pmg" role="status" aria-live="polite"></p>`;
  modal(h);
  $("saveProduct").onclick=async()=>{
-  const m=$("pmg"),btn=$("saveProduct");
+  const msg=text=>{const node=$("pmg");if(node)node.textContent=text;else toast(text)};
+  const btn=$("saveProduct");
   const title=$("pt").value.trim(),brand=$("pb").value.trim(),categoryId=$("pc").value||null,description=$("pd").value.trim();
   const mrpRaw=$("pm").value.trim(),saleRaw=$("ps").value.trim(),stockRaw=$("pk").value.trim();
   const sale=Number(saleRaw),mrp=mrpRaw===""?null:Number(mrpRaw),stock=Number(stockRaw);
-  if(!title){m.textContent="Product title is required.";return}
-  if(!saleRaw||!Number.isFinite(sale)||sale<=0){m.textContent="Enter a valid sale price greater than ₹0.";return}
-  if(mrp!==null&&(!Number.isFinite(mrp)||mrp<sale)){m.textContent="MRP must be at least the sale price, or leave MRP blank.";return}
-  if(!stockRaw||!Number.isInteger(stock)||stock<0){m.textContent="Stock must be a whole number (0 or more).";return}
+  if(!title){msg("Product title is required.");return}
+  if(!saleRaw||!Number.isFinite(sale)||sale<=0){msg("Enter a valid sale price greater than ₹0.");return}
+  if(mrp!==null&&(!Number.isFinite(mrp)||mrp<sale)){msg("MRP must be at least the sale price, or leave MRP blank.");return}
+  if(!stockRaw||!Number.isInteger(stock)||stock<0){msg("Stock must be a whole number (0 or more).");return}
   const file=$("pi").files?.[0];
-  if(file&&(!file.type.startsWith("image/")||file.size>5*1024*1024)){m.textContent="Choose an image under 5 MB.";return}
-  btn.disabled=true;btn.textContent="Saving…";m.textContent="Saving product…";
+  if(file&&(!file.type.startsWith("image/")||file.size>5*1024*1024)){msg("Choose an image under 5 MB.");return}
+  btn.disabled=true;btn.textContent="Saving…";msg("Saving product…");
   try{
    let image=p?.image_url||null;
    if(file){
@@ -362,8 +363,8 @@ async function productForm(id){
    await load();
    if($("retailAdminFullPage")?.isConnected){closeModal();await adminProducts()}
    else if($("sellerBody")){closeModal();await sellerProducts()}
-   else{m.textContent="Saved ✓";setTimeout(closeModal,500)}
-  }catch(err){m.textContent=err?.message||"Could not save product. Please try again.";btn.disabled=false;btn.textContent="Save Product"}
+   else{msg("Saved ✓");setTimeout(closeModal,500)}
+  }catch(err){msg(err?.message||"Could not save product. Please try again.");const currentBtn=$("saveProduct");if(currentBtn){currentBtn.disabled=false;currentBtn.textContent="Save Product"}}
  };
 }
 async function deleteProduct(id){
