@@ -3,7 +3,7 @@ const SUPABASE_PUBLISHABLE_KEY="sb_publishable_wmNek6qB6MCiPIJzueJhVQ_7-6d42yl";
 const db=window.supabase.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY);
 const incomingReferral=new URLSearchParams(location.search).get("ref");if(incomingReferral&&/^[A-Z0-9]{6,12}$/i.test(incomingReferral)){try{localStorage.setItem("retail_referral_code",incomingReferral.toUpperCase())}catch(e){}}
 const $=id=>document.getElementById(id), money=n=>"₹"+Number(n||0).toLocaleString("en-IN");
-let products=[],categories=[],allCategories=[],cart=JSON.parse(localStorage.getItem("retail_cart")||"[]"),active="All",user=null,profile=null,productAlertChannel=null;
+let products=[],categories=[],allCategories=[],cart=JSON.parse(localStorage.getItem("retail_cart")||"[]"),active="All",user=null,profile=null,productAlertChannel=null,customerLocation=null,sellerLocations={};
 const sample=[];
 function esc(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
 function modal(h){$("modalBody").innerHTML=h;/* The modal is wrapped in a method=dialog form. Prevent dashboard/action buttons from accidentally submitting and closing it. */$("modalBody").querySelectorAll("button:not(.close)").forEach(b=>{if(!b.hasAttribute("type"))b.type="button"});$("modal").showModal()}
@@ -11,6 +11,9 @@ function closeModal(){if($("modal").open)$("modal").close()}
 function syncAccountButtons(){ $("loginBtn").hidden=!!user; $("accountBtn").hidden=!user; const a=$("adminNavBtn"); if(a)a.hidden=!(user&&profile?.role==="admin"); }
 function off(p){let m=Number(p.mrp||p.price||0),s=Number(p.sale_price||p.price||0);return m>s?Math.round((m-s)*100/m):0}
 function saveCart(){try{localStorage.setItem("retail_cart",JSON.stringify(cart))}catch(e){console.warn("RETAIL cart storage unavailable:",e)}const count=$("cartCount");if(count)count.textContent=cart.reduce((n,x)=>n+Number(x.qty||0),0)}
+function getGpsPosition(){return new Promise((resolve,reject)=>{if(!navigator.geolocation)return reject(new Error("GPS is not supported by this browser."));navigator.geolocation.getCurrentPosition(pos=>resolve({latitude:pos.coords.latitude,longitude:pos.coords.longitude,accuracy:Math.round(pos.coords.accuracy||0)}),err=>reject(new Error(err.code===1?"Location permission denied. Allow location in browser settings.":err.code===2?"Location unavailable. Turn on device location.":"GPS timed out. Try again.")),{enableHighAccuracy:true,timeout:15000,maximumAge:60000})})}
+function distanceKm(a,b){if(!a||!b||a.latitude==null||a.longitude==null||b.latitude==null||b.longitude==null)return null;const r=x=>x*Math.PI/180,dl=r(b.latitude-a.latitude),dn=r(b.longitude-a.longitude),v=Math.sin(dl/2)**2+Math.cos(r(a.latitude))*Math.cos(r(b.latitude))*Math.sin(dn/2)**2;return 6371*2*Math.atan2(Math.sqrt(v),Math.sqrt(1-v))}
+function mapLink(lat,lon){return "https://www.google.com/maps/dir/?api=1&destination="+encodeURIComponent(Number(lat)+","+Number(lon))}
 function price(p){return Number(p.sale_price??p.price??0)}
 function renderCats(){const host=$("cats");if(!host)return;let list=["All",...categories.map(c=>c.name).filter(Boolean)];host.innerHTML=list.map(c=>`<button class="${active===c?"selected":""}" data-cat="${esc(c)}">${esc(c)}</button>`).join("")}
 function retailNormalize(s){return String(s||"").toLowerCase().replace(/[^a-z0-9 ]/g," ").split(" ").filter(Boolean).join(" ")}
@@ -216,7 +219,8 @@ async function checkout(items=cart){
  }
  items=normalized;
  const total=items.reduce((sum,i)=>sum+Number(i.price)*i.qty,0);
- modal(`<h2>COD Checkout</h2><div class="notice"><b>Cash on Delivery only.</b><br>No UPI or online payment is collected.</div><div class="summary">${items.map(i=>`<div class="lineitem"><span>${esc(i.title)} × ${i.qty}</span><b>${money(i.price*i.qty)}</b></div>`).join("")}<div class="lineitem"><b>Total</b><b>${money(total)}</b></div></div><label>Full name</label><input id="coName" value="${esc(profile?.full_name||"")}"><label>Mobile</label><input id="coPhone" value="${esc(profile?.phone||"")}" inputmode="tel"><label>Delivery address</label><textarea id="coAddress" rows="4" placeholder="House, village/city, district, PIN"></textarea><button class="primary wide" id="placeOrder" type="button">Place COD Order</button><p id="coMsg" role="status" aria-live="polite"></p>`);
+ modal(`<h2>COD Checkout</h2><div class="notice"><b>Cash on Delivery only.</b><br>No UPI or online payment is collected.</div><div class="summary">${items.map(i=>`<div class="lineitem"><span>${esc(i.title)} × ${i.qty}</span><b>${money(i.price*i.qty)}</b></div>`).join("")}<div class="lineitem"><b>Total</b><b>${money(total)}</b></div></div><label>Full name</label><input id="coName" value="${esc(profile?.full_name||"")}"><label>Mobile</label><input id="coPhone" value="${esc(profile?.phone||"")}" inputmode="tel"><label>Delivery address</label><textarea id="coAddress" rows="4" placeholder="House, village/city, district, PIN"></textarea><button class="dash wide" id="coGps" type="button">📍 Use GPS for delivery location</button><p id="coGpsStatus" style="font-size:12px;color:#64748b">GPS optional. Please confirm your written address.</p><button class="primary wide" id="placeOrder" type="button">Place COD Order</button><p id="coMsg" role="status" aria-live="polite"></p>`);
+ $("coGps").onclick=async()=>{const status=$("coGpsStatus");try{customerLocation=await getGpsPosition();status.textContent="GPS captured (±"+customerLocation.accuracy+" m). Confirm the written address.";const a=$("coAddress");if(a&&!a.value.trim())a.value="GPS location ("+customerLocation.latitude.toFixed(6)+", "+customerLocation.longitude.toFixed(6)+")"}catch(e){status.textContent=e.message;toast(e.message)}};
  $("placeOrder").onclick=async()=>{
   let n=$("coName").value.trim(),ph=$("coPhone").value.trim(),addr=$("coAddress").value.trim(),m=$("coMsg");
   if(!n||!/^[0-9]{10}$/.test(ph)||!addr){if(m)m.textContent="Enter name, valid 10-digit mobile and full address.";return}
@@ -233,7 +237,7 @@ async function checkout(items=cart){
    }
    if(m)m.textContent="Placing order…";
    const number="RET"+Date.now().toString().slice(-10);
-   const o=await db.from("orders").insert({customer_id:user.id,order_number:number,status:"placed",payment_method:"cod",payment_status:"pending",subtotal:total,platform_commission:total*.10,delivery_address:{name:n,phone:ph,address:addr}}).select("id,order_number").single();
+   const o=await db.from("orders").insert({customer_id:user.id,order_number:number,status:"placed",payment_method:"cod",payment_status:"pending",subtotal:total,platform_commission:total*.10,delivery_address:{name:n,phone:ph,address:addr,latitude:customerLocation?.latitude??null,longitude:customerLocation?.longitude??null,location_accuracy_m:customerLocation?.accuracy??null}}).select("id,order_number").single();
    if(o.error)throw new Error(o.error.message);
    const rows=items.map(i=>({order_id:o.data.id,product_id:i.id,seller_id:i.seller_id,product_title:i.title,unit_price:i.price,quantity:i.qty,seller_amount:i.price*i.qty*.90,commission_amount:i.price*i.qty*.10}));
    const ir=await db.from("order_items").insert(rows);
