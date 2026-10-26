@@ -120,7 +120,7 @@ body.sell-menu-open::before{content:"";position:fixed;inset:0;background:rgba(10
 <script>
 (function(){var splash=document.getElementById('retailWelcomeSplash');function hideSplash(){if(splash)splash.classList.add('splash-hidden')}window.setTimeout(hideSplash,2000);window.addEventListener('pageshow',function(){window.setTimeout(hideSplash,2000)},{once:true});})();
 </script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="app.js?v=20261026-direct-full-detail-page-7"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="app.js?v=20261026-animal-full-detail-similar-8"></script>
 <script>
 (function(){
  const dbAll=window.supabase.createClient("https://oebapdfkaumpmwdblqbv.supabase.co","sb_publishable_wmNek6qB6MCiPIJzueJhVQ_7-6d42yl");
@@ -148,6 +148,20 @@ body.sell-menu-open::before{content:"";position:fixed;inset:0;background:rgba(10
  if(searchInput){searchInput.addEventListener("input",()=>{updateSuggestions();drawAll()});searchInput.addEventListener("focus",updateSuggestions);searchInput.addEventListener("keydown",e=>{if(e.key==="Escape")suggestions?.classList.remove("open");if(e.key==="Enter"){suggestions?.classList.remove("open");drawAll()}});document.addEventListener("click",e=>{if(!e.target.closest(".search"))suggestions?.classList.remove("open")})}
  if(suggestions)suggestions.addEventListener("click",e=>{const b=e.target.closest("[data-suggest]");if(!b)return;searchInput.value=b.dataset.suggest;suggestions.classList.remove("open");if(typeof render==="function")render();drawAll();el("allListingsHeading")?.scrollIntoView({behavior:"smooth",block:"start"})});
  
+ function openAllAnimal(x){
+  if(!x||x.type!=="animal")return;
+  const related=rows.filter(y=>y.type==="animal"&&String(y.id)!==String(x.id)&&(y.category===x.category||y.breed&&x.breed&&y.breed===x.breed)).slice(0,8);
+  let old=el("retailFullProduct");if(old)old.remove();
+  const page=document.createElement("section");page.id="retailFullProduct";
+  const msg="Hello, I am interested in your RETAIL animal listing: "+x.title+" ("+moneyAll(x.price)+"). Is it available?";
+  const contact=waAll(x.phone,msg);
+  page.innerHTML='<header class="rfp-head"><button type="button" id="rfpBack">← Back</button><strong>Animal details</strong></header><div class="rfp-main"><div class="rfp-photo">'+(x.image?'<img src="'+escAll(x.image)+'" alt="'+escAll(x.title)+'">':'🐄')+'</div><span class="all-listing-type animal">Animal</span><h1>'+escAll(x.title)+'</h1><div class="rfp-price">'+moneyAll(x.price)+'</div><p class="rfp-meta">'+escAll([x.category,x.breed,x.age,x.city].filter(Boolean).join(" · "))+'</p><p>'+escAll(x.description||"Contact the seller for more details about this animal.")+'</p><p class="rfp-meta">Seller: '+escAll(x.sellerName||"RETAIL seller")+'</p><div class="rfp-actions">'+(contact?'<button type="button" id="rfpContact">Contact Seller</button>':'<button type="button" id="rfpContact">Seller contact unavailable</button>')+'<button type="button" id="rfpAnimalShare">Share listing</button></div><h2>Similar animals</h2><div class="rfp-similar">'+(related.map(y=>'<article class="rfp-sim-card" data-rfp-animal="'+escAll(y.id)+'"><div class="rfp-sim-photo">'+(y.image?'<img src="'+escAll(y.image)+'" alt="'+escAll(y.title)+'">':'🐄')+'</div><b>'+escAll(y.title)+'</b><strong>'+moneyAll(y.price)+'</strong><small>'+escAll([y.breed,y.city].filter(Boolean).join(" · "))+'</small></article>').join("")||'<p>No similar animals available yet.</p>')+'</div></div>';
+  document.body.appendChild(page);document.body.style.overflow="hidden";
+  page.querySelector("#rfpBack").onclick=()=>{page.remove();document.body.style.overflow=""};
+  page.querySelector("#rfpContact").onclick=()=>{if(contact)window.open(contact,"_blank","noopener");else alert("Seller has not provided a contact number.")};
+  page.querySelector("#rfpAnimalShare").onclick=()=>{if(navigator.share)navigator.share({title:x.title,text:x.title+" · "+moneyAll(x.price),url:location.href}).catch(()=>{});else if(navigator.clipboard)navigator.clipboard.writeText(x.title+" · "+moneyAll(x.price)).then(()=>alert("Listing details copied."))};
+  page.querySelectorAll("[data-rfp-animal]").forEach(card=>card.onclick=()=>{const next=rows.find(y=>String(y.id)===String(card.dataset.rfpAnimal));if(next){page.remove();document.body.style.overflow="";openAllAnimal(next)}});
+ }
  function openAllProduct(x){
   if(!x||x.type!=="product")return;
   const related=rows.filter(y=>y.type==="product"&&String(y.id)!==String(x.id)&&(y.category===x.category||y.brand&&x.brand&&y.brand===x.brand)).slice(0,8);
@@ -166,7 +180,7 @@ body.sell-menu-open::before{content:"";position:fixed;inset:0;background:rgba(10
   if(sort==="low")visible.sort((a,b)=>a.price-b.price);else if(sort==="high")visible.sort((a,b)=>b.price-a.price);else visible.sort((a,b)=>new Date(b.createdAt||0)-new Date(a.createdAt||0));
   const listingCount=el("allListingsCount");if(listingCount)listingCount.textContent=visible.length+" shown · "+rows.length+" total";
   el("allListingsGrid").innerHTML=visible.map(cardAll).join("")||'<div class="all-listing-empty">No active listings in this section yet.</div>';
-  const grid=el("allListingsGrid");grid.querySelectorAll(".all-listing-card").forEach((card,i)=>{const btn=card.querySelector("[data-all-add],[data-all-buy]");const id=btn?.dataset.allAdd||btn?.dataset.allBuy;const item=rows.find(y=>String(y.id)===String(id));if(item&&item.type==="product"){card.style.cursor="pointer";card.setAttribute("role","link");card.setAttribute("tabindex","0");card.onclick=e=>{if(e.target.closest("button,a"))return;openAllProduct(item)};card.onkeydown=e=>{if((e.key==="Enter"||e.key===" ")&&!e.target.closest("button,a")){e.preventDefault();openAllProduct(item)}}}});grid.querySelectorAll("[data-all-add]").forEach(b=>b.onclick=e=>{e.stopPropagation();if(typeof addToCart==="function")addToCart(b.dataset.allAdd)});grid.querySelectorAll("[data-all-buy]").forEach(b=>b.onclick=async e=>{e.stopPropagation();const p=typeof getP==="function"?getP(b.dataset.allBuy):null;if(!p){alert("Product details are loading. Please try again.");return}if(typeof checkout==="function")await checkout([{id:p.id,title:p.title,price:typeof price==="function"?price(p):Number(p.sale_price??p.price),image_url:p.image_url,seller_id:p.seller_id,qty:1}])});
+  const grid=el("allListingsGrid");grid.querySelectorAll(".all-listing-card").forEach((card,i)=>{const btn=card.querySelector("[data-all-add],[data-all-buy]");const id=btn?.dataset.allAdd||btn?.dataset.allBuy;const item=rows.find(y=>String(y.id)===String(id));if(item&&(item.type==="product"||item.type==="animal")){card.style.cursor="pointer";card.setAttribute("role","link");card.setAttribute("tabindex","0");const open=()=>item.type==="animal"?openAllAnimal(item):openAllProduct(item);card.onclick=e=>{if(e.target.closest("button,a"))return;open()};card.onkeydown=e=>{if((e.key==="Enter"||e.key===" ")&&!e.target.closest("button,a")){e.preventDefault();open()}}}});grid.querySelectorAll("[data-all-add]").forEach(b=>b.onclick=e=>{e.stopPropagation();if(typeof addToCart==="function")addToCart(b.dataset.allAdd)});grid.querySelectorAll("[data-all-buy]").forEach(b=>b.onclick=async e=>{e.stopPropagation();const p=typeof getP==="function"?getP(b.dataset.allBuy):null;if(!p){alert("Product details are loading. Please try again.");return}if(typeof checkout==="function")await checkout([{id:p.id,title:p.title,price:typeof price==="function"?price(p):Number(p.sale_price??p.price),image_url:p.image_url,seller_id:p.seller_id,qty:1}])});
  }
  async function loadAll(){
   try{
@@ -181,7 +195,7 @@ body.sell-menu-open::before{content:"";position:fixed;inset:0;background:rgba(10
    rows=[
     ...products.map(x=>{const category=categories.find(y=>y.id===x.category_id)?.name||"Product";return {type:"product",kind:isFruit({...x,category})?"fruit":"regular",id:x.id,title:x.title,price:Number(x.sale_price??x.price??0),image:x.image_url,category,brand:x.brand,createdAt:x.created_at}}),
     ...used.map(x=>({type:"used",kind:"used",id:x.id,title:x.title,price:Number(x.price||0),image:x.image_url,category:"Second-hand",condition:x.item_condition,city:x.city,phone:x.seller_phone,createdAt:x.created_at})),
-    ...animals.map(x=>({type:"animal",kind:"animal",id:x.id,title:x.title,price:Number(x.price||0),image:x.image_url,category:x.animal_type||"Animal",breed:x.breed,city:x.city,phone:x.seller_phone,createdAt:x.created_at}))
+    ...animals.map(x=>({type:"animal",kind:"animal",id:x.id,title:x.title,price:Number(x.price||0),image:x.image_url,description:x.description,category:x.animal_type||"Animal",breed:x.breed,age:x.age,city:x.city,phone:x.seller_phone,sellerName:x.seller_name,createdAt:x.created_at}))
    ];
    const failed=[c,p,u,a].some(x=>x.error);
    if(failed)console.warn("RETAIL All Products section partial load", [c.error,p.error,u.error,a.error].filter(Boolean));
