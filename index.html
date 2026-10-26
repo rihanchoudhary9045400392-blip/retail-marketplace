@@ -74,7 +74,28 @@
 </div>
 </aside>
 </div>
-<script>(function(){const b=document.getElementById("sellRailToggle"),p=document.getElementById("sellRailPanel");if(!b||!p)return;b.addEventListener("click",function(){const open=b.getAttribute("aria-expanded")!=="true";b.setAttribute("aria-expanded",String(open));p.hidden=!open});document.addEventListener("click",function(e){if(!e.target.closest(".retail-sell-hub")){b.setAttribute("aria-expanded","false");p.hidden=true}});})();</script>
+<style>
+/* Floating, draggable Sell shortcut; menu appears only after tapping */
+.retail-sell-hub{position:fixed!important;z-index:10000;right:14px;top:42%;left:auto;bottom:auto;display:flex!important;flex-direction:column;align-items:flex-end;gap:8px;padding:0!important;margin:0!important;background:transparent!important;border:0!important;box-shadow:none!important;width:max-content!important;touch-action:none}
+.sell-rail-toggle{width:auto!important;min-width:76px!important;height:42px!important;padding:0 12px!important;display:flex!important;align-items:center;justify-content:center;gap:5px;border:1px solid #d9e3f1;border-radius:22px!important;background:#0757d9;color:#fff;font-size:22px;line-height:1;box-shadow:0 4px 16px #12365b30;cursor:grab;touch-action:none}
+.sell-rail-toggle strong{font-size:13px;font-weight:700}.sell-rail-toggle span{font-size:22px;line-height:1}
+.sell-rail-panel{width:205px;max-width:calc(100vw - 28px);padding:9px;display:flex;flex-direction:column;gap:7px;background:#fff;border:1px solid #dce5f1;border-radius:14px;box-shadow:0 10px 30px #102b4b25;touch-action:auto}
+.sell-rail-panel[hidden]{display:none!important}.sell-panel-heading{font-size:14px;font-weight:800;color:#12315b;padding:4px 6px 8px;border-bottom:1px solid #e5ebf4;margin-bottom:5px}
+@media(max-width:600px){.retail-sell-hub{right:12px;top:42%}.sell-rail-panel{width:190px}}
+</style>
+<script>(function(){
+ const hub=document.querySelector(".retail-sell-hub"),b=document.getElementById("sellRailToggle"),p=document.getElementById("sellRailPanel");
+ if(!hub||!b||!p)return;
+ p.hidden=true;
+ b.addEventListener("click",function(e){if(dragged){e.preventDefault();return}const open=b.getAttribute("aria-expanded")!=="true";b.setAttribute("aria-expanded",String(open));p.hidden=!open});
+ document.addEventListener("click",function(e){if(!e.target.closest(".retail-sell-hub")){b.setAttribute("aria-expanded","false");p.hidden=true}});
+ let dragging=false,dragged=false,startX=0,startY=0,left=0,top=0,pid=null;
+ b.addEventListener("pointerdown",function(e){dragging=true;dragged=false;pid=e.pointerId;startX=e.clientX;startY=e.clientY;const r=hub.getBoundingClientRect();left=r.left;top=r.top;b.setPointerCapture(pid);b.style.cursor="grabbing"});
+ b.addEventListener("pointermove",function(e){if(!dragging||e.pointerId!==pid)return;const dx=e.clientX-startX,dy=e.clientY-startY;if(Math.abs(dx)>4||Math.abs(dy)>4)dragged=true;if(!dragged)return;const x=Math.max(0,Math.min(innerWidth-hub.offsetWidth,left+dx)),y=Math.max(0,Math.min(innerHeight-hub.offsetHeight,top+dy));hub.style.left=x+"px";hub.style.top=y+"px";hub.style.right="auto";hub.style.bottom="auto"});
+ function end(e){if(!dragging)return;dragging=false;b.style.cursor="grab";if(dragged){const x=hub.style.left,y=hub.style.top;try{localStorage.setItem("retailSellHubPos",JSON.stringify({x,y}))}catch(_){}setTimeout(()=>{dragged=false},80)}}
+ b.addEventListener("pointerup",end);b.addEventListener("pointercancel",end);
+ try{const pos=JSON.parse(localStorage.getItem("retailSellHubPos")||"null");if(pos&&pos.x&&pos.y){hub.style.left=pos.x;hub.style.top=pos.y;hub.style.right="auto"}}catch(_){}
+})();</script>
 
 <section class="shopping-benefits" aria-label="Shopping benefits"><article><span class="benefit-icon">🚚</span><div><b>Easy ordering</b><p>Browse products and order from your phone.</p></div></article><article><span class="benefit-icon">💵</span><div><b>Cash on Delivery</b><p>Pay when your order arrives.</p></div></article><article><span class="benefit-icon">🛍️</span><div><b>More to explore</b><p>Discover items across available categories.</p></div></article></section><section class="how-retail"><div><span class="eyebrow">Simple shopping</span><h2>Your next find is just a few taps away</h2><p>Search for an item, open its product page to check the details, then add it to your cart or choose Buy Now.</p></div><button class="primary" id="shopNowBottom" type="button">Browse products</button></section><footer><b>RETAIL</b><span>Cash on Delivery only</span><a href="privacy-policy.html">Privacy Policy</a></footer>
 </main>
