@@ -117,7 +117,7 @@ async function account(){
  if(!user){auth();return}
  const isAdmin=profile?.role==="admin";
  if(isAdmin){
-  modal(`<h2>Admin Profile</h2><p><b>${esc(profile?.full_name||user.email)}</b><br>${esc(user.email||"")}</p><p class="notice">Admin-only workspace. Customer and seller menus are kept separate.</p><div class="dashgrid"><button class="dash" id="admProfileOrders">All Orders</button><button class="dash" id="admProfileProducts">All Products</button><button class="dash" id="admProfileSellers">Seller Management</button><button class="dash" id="admProfilePanel">Admin Dashboard</button><button class="dash danger" id="admProfileLogout">Logout</button></div><div id="adminBody"></div>`);
+  modal(`<h2>RETAIL · Admin Control Center</h2><p><b>Administrator</b><br>${esc(profile?.full_name||"Admin")}<br>${esc(user.email||"")}</p><p class="notice">Private administrator workspace — store management, order oversight and seller controls. This is not a customer profile.</p><div class="dashgrid"><button class="dash" id="admProfileOrders">📦 All Orders & Status</button><button class="dash" id="admProfileProducts">🛍️ All Products</button><button class="dash" id="admProfileSellers">👥 Seller Management</button><button class="dash" id="admProfilePanel">📊 Admin Dashboard</button><button class="dash" id="admProfileLogout">🔐 Sign Out</button></div><div id="adminBody"></div>`);
   $("admProfileOrders").onclick=()=>adminOrders();$("admProfileProducts").onclick=()=>adminProducts();$("admProfileSellers").onclick=()=>adminSellers();$("admProfilePanel").onclick=()=>adminPanel();
   $("admProfileLogout").onclick=async()=>{await db.auth.signOut();profile=null;user=null;syncAccountButtons();closeModal();await refreshUser();toast("Logged out")};
   return;
@@ -382,19 +382,25 @@ async function adminOrderDetail(orderId){
 async function adminOrders(){
  const host=$("adminBody");
  host.innerHTML="<p>Loading orders…</p>";
- const r=await db.from("orders").select("id,order_number,status,payment_method,payment_status,subtotal,delivery_address,created_at,order_items(product_title,quantity)").order("created_at",{ascending:false});
+ const r=await db.from("orders").select("id,order_number,status,payment_method,payment_status,subtotal,platform_commission,delivery_address,created_at,order_items(product_id,product_title,unit_price,quantity,seller_id,seller_amount,commission_amount)").order("created_at",{ascending:false});
  if(r.error){host.innerHTML="<p class='notice'>Orders could not be loaded: "+esc(r.error.message)+"</p><button class='dash' id='adminOrdersRetry' type='button'>Try again</button>";$("adminOrdersRetry").onclick=adminOrders;return}
  const labels={placed:"Pending",pending:"Pending",confirmed:"Confirmed",packed:"Packed",shipped:"Shipped",delivered:"Delivered",cancelled:"Cancelled"};
- host.innerHTML=(r.data||[]).map(o=>{
+ const allOrders=r.data||[];
+ const sellerIds=[...new Set(allOrders.flatMap(o=>(o.order_items||[]).map(i=>i.seller_id).filter(Boolean)))];
+ let sellerNames={};
+ if(sellerIds.length){const sr=await db.from("profiles").select("id,full_name").in("id",sellerIds);if(!sr.error)(sr.data||[]).forEach(p=>sellerNames[p.id]=p.full_name||"Seller");}
+ host.innerHTML=allOrders.map(o=>{
   const s=String(o.status||"placed").toLowerCase(),label=labels[s]||s;
   const tone=s==="delivered"?"#16803c":s==="cancelled"?"#c62828":s==="shipped"?"#0757c9":"#8a5a00";
-  return `<button type="button" class="order" data-open-order="${esc(o.id)}" style="display:block;width:100%;text-align:left;cursor:pointer;margin:10px 0;padding:14px;background:var(--card,#fff);color:inherit;border:1px solid var(--border,#ddd);border-radius:12px">
-   <b>${esc(o.order_number)}</b> · ${money(o.subtotal)} · COD
-   <span style="display:inline-block;margin:7px 0;padding:4px 9px;border-radius:999px;background:${tone}18;color:${tone};font-weight:700">Status: ${esc(label)}</span>
-   <br><small>${esc(o.delivery_address?.name||"")} · ${esc(o.delivery_address?.phone||"")} · ${esc(o.delivery_address?.address||"")}</small>
-   <br><small>${(o.order_items||[]).map(i=>esc(i.product_title)+" × "+i.quantity).join(", ")}</small>
-   <p style="margin:8px 0 0;font-weight:700">Tap to view order details and update status →</p>
-  </button>`;
+  const itemRows=(o.order_items||[]).map(i=>`<div class="lineitem" style="gap:8px"><span><b>${esc(i.product_title)}</b><br><small>Product ID: ${esc(i.product_id||"—")} · Seller: ${esc(sellerNames[i.seller_id]||i.seller_id||"Not linked")}<br>Qty: ${Number(i.quantity||0)} × ${money(i.unit_price)} · Seller amount: ${money(i.seller_amount??Number(i.unit_price||0)*Number(i.quantity||0)*.9)} · Commission: ${money(i.commission_amount??Number(i.unit_price||0)*Number(i.quantity||0)*.1)}</small></span><b>${money(Number(i.unit_price||0)*Number(i.quantity||0))}</b></div>`).join("");
+  return `<article class="order" style="display:block;margin:10px 0;padding:14px;background:var(--card,#fff);color:inherit;border:1px solid var(--border,#ddd);border-radius:12px">
+   <div style="display:flex;justify-content:space-between;gap:8px;align-items:center;flex-wrap:wrap"><b>${esc(o.order_number)}</b><span style="padding:4px 9px;border-radius:999px;background:${tone}18;color:${tone};font-weight:700">Status: ${esc(label)}</span></div>
+   <p style="margin:8px 0"><b>Order total: ${money(o.subtotal)}</b> · ${esc(String(o.payment_method||"COD").toUpperCase())} · Payment: ${esc(o.payment_status||"pending")}</p>
+   <small>${esc(new Date(o.created_at).toLocaleString("en-IN"))}</small>
+   <p><b>Customer:</b> ${esc(o.delivery_address?.name||"")} · ${esc(o.delivery_address?.phone||"")}<br><b>Delivery address:</b> ${esc(o.delivery_address?.address||"")}</p>
+   <h4 style="margin:10px 0 4px">All products in this order (${(o.order_items||[]).length})</h4>${itemRows||"<p>Product details unavailable.</p>"}
+   <button type="button" class="primary wide" data-open-order="${esc(o.id)}" style="margin-top:12px">Open full order & update status →</button>
+  </article>`;
  }).join("")||"<p>No orders yet.</p>";
  host.querySelectorAll("[data-open-order]").forEach(btn=>btn.addEventListener("click",()=>adminOrderDetail(btn.dataset.openOrder)));
  const refresh=document.createElement("button");refresh.className="dash wide";refresh.type="button";refresh.textContent="Refresh orders";refresh.onclick=adminOrders;host.appendChild(refresh);
