@@ -341,7 +341,11 @@ async function productForm(id){
  ${!p?`<section class="notice" style="margin:14px 0"><b>Product listing fee</b><label for="listingPaymentMethod">Choose payment method</label><select id="listingPaymentMethod"><option value="coins">Use 50 RETAIL Coins</option><option value="upi">Pay ₹10 by UPI QR</option></select><div id="upiListingBox" hidden style="text-align:center;margin-top:12px"><p>Scan this QR with any UPI app and pay exactly ₹10 to <b>RIHAN</b>.</p><img alt="UPI QR for ₹10 RETAIL product listing" style="width:210px;max-width:100%;border:1px solid #ddd;border-radius:12px" src="https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=upi%3A%2F%2Fpay%3Fpa%3D9045400392-2%40ibl%26pn%3DRIHAN%26am%3D10%26cu%3DINR%26tn%3DRETAIL%2520product%2520listing"><p><a href="upi://pay?pa=9045400392-2@ibl&amp;pn=RIHAN&amp;am=10&amp;cu=INR&amp;tn=RETAIL%20product%20listing">Open UPI app to pay ₹10</a></p><p style="font-size:12px">UPI ID: <b>9045400392-2@ibl</b></p><label for="listingUtr">UPI transaction ID / UTR *</label><input id="listingUtr" maxlength="80" placeholder="Enter UTR after payment"><small>Product will be saved after admin verifies the payment.</small></div></section>`: ""}
  <button class="primary wide" id="saveProduct" type="button">Save Product</button><p id="pmg" role="status" aria-live="polite"></p>`;
  modal(h);
- if(!p){$("listingPaymentMethod").onchange=()=>{$("upiListingBox").hidden=$("listingPaymentMethod").value!=="upi"}}
+ if(!p){
+  $("listingPaymentMethod").onchange=()=>{$("upiListingBox").hidden=$("listingPaymentMethod").value!=="upi"};
+  const coinCheck=await db.from("profiles").select("coins_balance").eq("id",user.id).maybeSingle();
+  if(!coinCheck.error&&Number(coinCheck.data?.coins_balance||0)<50){$("listingPaymentMethod").value="upi";$("upiListingBox").hidden=false}
+ }
  $("saveProduct").onclick=async()=>{
   const msg=text=>{const node=$("pmg");if(node?.isConnected)node.textContent=text;else toast(text)};
   const btn=$("saveProduct");
