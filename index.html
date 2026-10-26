@@ -190,12 +190,8 @@ body.sell-menu-open::before{content:"";position:fixed;inset:0;background:rgba(10
  const nav=document.querySelector('.retail-bottom-nav'); if(!nav)return;
  function active(tab){nav.querySelectorAll('button').forEach(b=>b.classList.toggle('active',b.dataset.retailTab===tab))}
  nav.addEventListener('click',function(e){
-  const b=e.target.closest('button[data-retail-tab]');if(!b)return;const tab=b.dataset.retailTab;active(tab);
-  if(tab==='home'){window.scrollTo({top:0,behavior:'smooth'});return}
-  if(tab==='store'){document.getElementById('allListings')?.scrollIntoView({behavior:'smooth',block:'start'});return}
-  if(tab==='cart'){document.getElementById('cartBtn')?.click();return}
-  if(tab==='profile'){const a=document.getElementById('accountBtn'),l=document.getElementById('loginBtn');(a&&!a.hidden?a:l)?.click();return}
-  if(tab==='orders'){const a=document.getElementById('accountBtn'),l=document.getElementById('loginBtn');(a&&!a.hidden?a:l)?.click();window.setTimeout(()=>document.getElementById('ordersBtn')?.click(),120)}
+  const b=e.target.closest('button[data-retail-tab]');if(!b)return;
+  /* Navigation actions are handled by the full-page customer navigator below. */
  });
  window.addEventListener('hashchange',()=>{if(location.hash.startsWith('#product/'))active('store')});
 })();
