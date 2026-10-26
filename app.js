@@ -83,44 +83,44 @@ async function auth(){
   if(!go)throw new Error("Login form did not open correctly.");
   $("forgotPass").onclick=async()=>{
    const email=$("email").value.trim(),m=$("authMsg");
-   if(!email){m.textContent="Enter your account email first.";return;}
-   m.textContent="Sending password reset link…";
+   if(!email){if(m)m.textContent="Enter your account email first.";return;}
+   if(m)m.textContent="Sending password reset link…";
    const r=await db.auth.resetPasswordForEmail(email,{redirectTo:location.origin+location.pathname});
-   m.textContent=r.error?r.error.message:"If this email has a RETAIL account, a password reset link has been sent. Check inbox and spam.";
+   if(m)m.textContent=r.error?r.error.message:"If this email has a RETAIL account, a password reset link has been sent. Check inbox and spam.";
   };
   $("resendVerify").onclick=async()=>{
    const email=$("email").value.trim(),m=$("authMsg");
-   if(!email){m.textContent="Enter your account email first.";return;}
-   m.textContent="Sending verification email…";
+   if(!email){if(m)m.textContent="Enter your account email first.";return;}
+   if(m)m.textContent="Sending verification email…";
    const r=await db.auth.resend({type:"signup",email,options:{emailRedirectTo:location.origin+location.pathname}});
-   m.textContent=r.error?r.error.message:"If this account needs verification, a new confirmation email has been sent. Check inbox and spam.";
+   if(m)m.textContent=r.error?r.error.message:"If this account needs verification, a new confirmation email has been sent. Check inbox and spam.";
   };
   go.onclick=async()=>{
    const email=$("email").value.trim(),password=$("password").value,n=$("fullName").value.trim(),ph=$("phone").value.trim(),m=$("authMsg");
-   if(!email||password.length<6){m.textContent="Enter a valid email and a password of at least 6 characters.";return;}
-   go.disabled=true;go.textContent="Please wait…";m.textContent="Connecting securely…";
+   if(!email||password.length<6){if(m)m.textContent="Enter a valid email and a password of at least 6 characters.";return;}
+   go.disabled=true;go.textContent="Please wait…";if(m)m.textContent="Connecting securely…";
    try{
     let r=await db.auth.signInWithPassword({email,password});
     if(!r.error){
      await refreshUser(r.data.user);
-     if(!user){m.textContent="Login returned without an active session. Please refresh and try again.";return;}
+     if(!user){if(m)m.textContent="Login returned without an active session. Please refresh and try again.";return;}
      closeModal();syncAccountButtons();toast("Logged in ✓");await account();return;
     }
     const loginError=r.error;
     if(!/invalid login credentials|email not confirmed|user not found/i.test(loginError.message||"")){
-     m.textContent=loginError.message||"Login failed. Please try again.";return;
+     if(m)m.textContent=loginError.message||"Login failed. Please try again.";return;
     }
     if(/email not confirmed/i.test(loginError.message||"")){
-     m.textContent="Please verify your email from the confirmation message, then log in again.";return;
+     if(m)m.textContent="Please verify your email from the confirmation message, then log in again.";return;
     }
     r=await db.auth.signUp({email,password,options:{data:{full_name:n,phone:ph,referral_code:(localStorage.getItem("retail_referral_code")||"")}}});
-    if(r.error){m.textContent=(/already registered|already exists/i.test(r.error.message||""))?"This email already has an account. Check your password or use Forgot Password in Supabase.":r.error.message;return;}
+    if(r.error){if(m)m.textContent=(/already registered|already exists/i.test(r.error.message||""))?"This email already has an account. Check your password or use Forgot Password in Supabase.":r.error.message;return;}
     if(r.data?.session){
      await db.from("profiles").upsert({id:r.data.user.id,full_name:n||email.split("@")[0],phone:ph||null,role:"customer"});
      await refreshUser();closeModal();toast("Account created & logged in ✓");account();return;
     }
-    m.textContent="Account created. Check your email for a verification link, verify it, then return here and log in.";
-   }catch(err){console.error("RETAIL auth action failed:",err);m.textContent=err?.message||"Could not connect. Check your internet and try again.";}
+    if(m)m.textContent="Account created. Check your email for a verification link, verify it, then return here and log in.";
+   }catch(err){console.error("RETAIL auth action failed:",err);if(m)m.textContent=err?.message||"Could not connect. Check your internet and try again.";}
    finally{go.disabled=false;go.textContent="Login / Create account";}
   };
  }catch(err){console.error("RETAIL auth form failed:",err);alert("Could not open RETAIL login. Please refresh the page and try again.");}
@@ -219,19 +219,19 @@ async function checkout(items=cart){
  modal(`<h2>COD Checkout</h2><div class="notice"><b>Cash on Delivery only.</b><br>No UPI or online payment is collected.</div><div class="summary">${items.map(i=>`<div class="lineitem"><span>${esc(i.title)} × ${i.qty}</span><b>${money(i.price*i.qty)}</b></div>`).join("")}<div class="lineitem"><b>Total</b><b>${money(total)}</b></div></div><label>Full name</label><input id="coName" value="${esc(profile?.full_name||"")}"><label>Mobile</label><input id="coPhone" value="${esc(profile?.phone||"")}" inputmode="tel"><label>Delivery address</label><textarea id="coAddress" rows="4" placeholder="House, village/city, district, PIN"></textarea><button class="primary wide" id="placeOrder" type="button">Place COD Order</button><p id="coMsg" role="status" aria-live="polite"></p>`);
  $("placeOrder").onclick=async()=>{
   let n=$("coName").value.trim(),ph=$("coPhone").value.trim(),addr=$("coAddress").value.trim(),m=$("coMsg");
-  if(!n||!/^[0-9]{10}$/.test(ph)||!addr){m.textContent="Enter name, valid 10-digit mobile and full address.";return}
-  const btn=$("placeOrder");btn.disabled=true;m.textContent="Checking latest price and stock…";
+  if(!n||!/^[0-9]{10}$/.test(ph)||!addr){if(m)m.textContent="Enter name, valid 10-digit mobile and full address.";return}
+  const btn=$("placeOrder");btn.disabled=true;if(m)m.textContent="Checking latest price and stock…";
   try{
    const latest=await db.from("products").select("id,title,price,sale_price,stock,status,seller_id").in("id",ids);
    if(latest.error)throw new Error(latest.error.message);
    const latestById=new Map((latest.data||[]).map(p=>[String(p.id),p]));
    for(const item of items){
     const p=latestById.get(String(item.id));
-    if(!p||p.status!=="active"||Number(p.stock??0)<item.qty){m.textContent="A product is no longer available or stock has changed. Close checkout, update your cart, and try again.";btn.disabled=false;return}
-    if(price(p)!==Number(item.price)){m.textContent="The price of "+p.title+" has changed. Close checkout and reopen it to confirm the new total.";btn.disabled=false;return}
-    if(!p.seller_id){m.textContent="Order unavailable: seller details are missing for "+p.title+".";btn.disabled=false;return}
+    if(!p||p.status!=="active"||Number(p.stock??0)<item.qty){if(m)m.textContent="A product is no longer available or stock has changed. Close checkout, update your cart, and try again.";btn.disabled=false;return}
+    if(price(p)!==Number(item.price)){if(m)m.textContent="The price of "+p.title+" has changed. Close checkout and reopen it to confirm the new total.";btn.disabled=false;return}
+    if(!p.seller_id){if(m)m.textContent="Order unavailable: seller details are missing for "+p.title+".";btn.disabled=false;return}
    }
-   m.textContent="Placing order…";
+   if(m)m.textContent="Placing order…";
    const number="RET"+Date.now().toString().slice(-10);
    const o=await db.from("orders").insert({customer_id:user.id,order_number:number,status:"placed",payment_method:"cod",payment_status:"pending",subtotal:total,platform_commission:total*.10,delivery_address:{name:n,phone:ph,address:addr}}).select("id,order_number").single();
    if(o.error)throw new Error(o.error.message);
@@ -240,7 +240,7 @@ async function checkout(items=cart){
    if(ir.error){await db.from("orders").delete().eq("id",o.data.id);throw new Error(ir.error.message)}
    if(items.every(i=>cart.some(c=>String(c.id)===String(i.id)))){cart=[];saveCart()}
    closeModal();notifyWhatsApp(o.data.order_number,items,total,n,ph,addr);
-  }catch(err){m.textContent=err?.message||"Could not place order. Please try again.";btn.disabled=false}
+  }catch(err){if(m)m.textContent=err?.message||"Could not place order. Please try again.";btn.disabled=false}
  };
 }
 function notifyWhatsApp(orderNumber,items,total,name,phone,address){
@@ -305,7 +305,7 @@ window.addEventListener("popstate",()=>{
 async function sellerPanel(){
  if(!user){auth();return}
  let r=await db.from("seller_profiles").select("*").eq("user_id",user.id).maybeSingle(),sp=r.data;
- if(!sp){modal(`<h2>Become a seller</h2><p>Apply once. After admin approval you can list products.</p><label>Store name</label><input id="storeName" placeholder="Your store"><button class="primary wide" id="applySeller">Submit application</button><p id="sellerMsg"></p>`);$("applySeller").onclick=async()=>{let s=$("storeName").value.trim(),m=$("sellerMsg");if(!s){m.textContent="Enter store name.";return}let x=await db.from("seller_profiles").insert({user_id:user.id,store_name:s,status:"pending",commission_percent:10});m.textContent=x.error?x.error.message:"Application submitted. Wait for admin approval.";};return}
+ if(!sp){modal(`<h2>Become a seller</h2><p>Apply once. After admin approval you can list products.</p><label>Store name</label><input id="storeName" placeholder="Your store"><button class="primary wide" id="applySeller">Submit application</button><p id="sellerMsg"></p>`);$("applySeller").onclick=async()=>{let s=$("storeName").value.trim(),m=$("sellerMsg");if(!s){if(m)m.textContent="Enter store name.";return}let x=await db.from("seller_profiles").insert({user_id:user.id,store_name:s,status:"pending",commission_percent:10});if(m)m.textContent=x.error?x.error.message:"Application submitted. Wait for admin approval.";};return}
  let approved=sp.status==="approved";modal(`<h2>Seller Dashboard</h2><p>Store: <b>${esc(sp.store_name)}</b> · Status: <b>${esc(sp.status)}</b> · Commission: 10%</p>${approved?`<button class="primary wide" id="addProduct">Add Product</button><button class="dash wide" id="myProducts">My Products</button><button class="dash wide" id="sellerOrders">Seller Orders</button><div id="sellerBody"></div>`:"<p class='notice'>Admin approval is required before you can add products.</p>"}`);if(approved){$("addProduct").onclick=()=>productForm();$("myProducts").onclick=()=>sellerProducts();$("sellerOrders").onclick=()=>sellerOrders()}}
 async function sellerProducts(){
  let r=await db.from("products").select("id,title,price,mrp,sale_price,stock,image_url,status,category_id,categories:category_id(name)").eq("seller_id",user.id).order("created_at",{ascending:false});$("sellerBody").innerHTML=(r.data||[]).map(p=>`<div class="adminrow"><span><b>${esc(p.title)}</b><br>${money(p.sale_price??p.price)} · stock ${p.stock} · ${p.status}</span><span><button data-edit="${p.id}">Edit</button><button data-del="${p.id}" class="danger">Delete</button></span></div>`).join("")||"<p>No products.</p>";document.querySelectorAll("[data-edit]").forEach(b=>b.onclick=()=>productForm(b.dataset.edit));document.querySelectorAll("[data-del]").forEach(b=>b.onclick=()=>deleteProduct(b.dataset.del))}
@@ -335,7 +335,7 @@ async function productForm(id){
  <button class="primary wide" id="saveProduct" type="button">Save Product</button><p id="pmg" role="status" aria-live="polite"></p>`;
  modal(h);
  $("saveProduct").onclick=async()=>{
-  const msg=text=>{const node=$("pmg");if(node)node.textContent=text;else toast(text)};
+  const msg=text=>{const node=$("pmg");if(node?.isConnected)node.textContent=text;else toast(text)};
   const btn=$("saveProduct");
   const title=$("pt").value.trim(),brand=$("pb").value.trim(),categoryId=$("pc").value||null,description=$("pd").value.trim();
   const mrpRaw=$("pm").value.trim(),saleRaw=$("ps").value.trim(),stockRaw=$("pk").value.trim();
@@ -472,9 +472,9 @@ async function adminOrderDetail(orderId){
  $("orderBack").onclick=adminOrders;
  $("saveOrderStatus").onclick=async()=>{
   const btn=$("saveOrderStatus"),msg=$("orderStatusMessage"),next=$("detailOrderStatus").value;
-  btn.disabled=true;msg.textContent="Saving status…";
+  btn.disabled=true;if(msg)msg.textContent="Saving status…";
   const x=await db.from("orders").update({status:next}).eq("id",o.id);
-  if(x.error){msg.textContent="Status update failed: "+x.error.message;btn.disabled=false;return}
+  if(x.error){if(msg)msg.textContent="Status update failed: "+x.error.message;btn.disabled=false;return}
   toast("Order status updated.");
   await adminOrderDetail(o.id);
  };
