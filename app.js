@@ -113,9 +113,29 @@ async function auth(){
   };
  }catch(err){console.error("RETAIL auth form failed:",err);alert("Could not open RETAIL login. Please refresh the page and try again.");}
 }
-async function account(){
+async async function account(){
  if(!user){auth();return}
- let isAdmin=profile?.role==="admin", html=`<h2>My RETAIL account</h2><p><b>${esc(profile?.full_name||user.email)}</b><br>${esc(profile?.phone||"")}</p><div class="dashgrid"><button class="dash" id="ordersBtn">My Orders</button><button class="dash" id="sellerBtn">Seller Dashboard</button><button class="dash" id="coinsBtn">🪙 My Coins & Invite</button><button class="dash" id="alertsBtn">🔔 Enable free product alerts</button>${isAdmin?'<button class="dash" id="adminBtn">Admin Panel</button>':""}<button class="dash danger" id="logoutBtn">Logout</button></div><div id="dashBody"></div>`;modal(html);$("ordersBtn").onclick=myOrders;$("sellerBtn").onclick=sellerPanel;$("coinsBtn").onclick=rewardsPanel;$("alertsBtn").onclick=enableProductAlerts;if(isAdmin)$("adminBtn").onclick=adminPanel;$("logoutBtn").onclick=async()=>{await db.auth.signOut();profile=null;user=null;syncAccountButtons();closeModal();await refreshUser();toast("Logged out")}}
+ const isAdmin=profile?.role==="admin";
+ if(isAdmin){
+  modal(`<h2>Admin Profile</h2><p><b>${esc(profile?.full_name||user.email)}</b><br>${esc(user.email||"")}</p><p class="notice">Admin-only workspace. Customer and seller menus are kept separate.</p><div class="dashgrid"><button class="dash" id="admProfileOrders">All Orders</button><button class="dash" id="admProfileProducts">All Products</button><button class="dash" id="admProfileSellers">Seller Management</button><button class="dash" id="admProfilePanel">Admin Dashboard</button><button class="dash danger" id="admProfileLogout">Logout</button></div><div id="adminBody"></div>`);
+  $("admProfileOrders").onclick=()=>adminOrders();$("admProfileProducts").onclick=()=>adminProducts();$("admProfileSellers").onclick=()=>adminSellers();$("admProfilePanel").onclick=()=>adminPanel();
+  $("admProfileLogout").onclick=async()=>{await db.auth.signOut();profile=null;user=null;syncAccountButtons();closeModal();await refreshUser();toast("Logged out")};
+  return;
+ }
+ const sr=await db.from("seller_profiles").select("store_name,status,commission_percent").eq("user_id",user.id).maybeSingle();
+ const seller=sr.data,approved=seller?.status==="approved";
+ if(seller){
+  modal(`<h2>Seller Profile</h2><p><b>${esc(seller.store_name||"My Store")}</b></p><p>${esc(user.email||"")}<br>${esc(profile?.phone||"")}</p><div class="notice">Seller status: <b>${esc(seller.status)}</b> · Commission: ${Number(seller.commission_percent??10)}%</div><div class="dashgrid">${approved?'<button class="dash" id="sellerProfileOrders">My Store Orders</button><button class="dash" id="sellerProfileProducts">My Products</button><button class="dash" id="sellerProfileAdd">Add Product</button>':'<button class="dash" id="sellerProfileStatus">Application Status</button>'}<button class="dash" id="sellerProfileEdit">Store Dashboard</button><button class="dash danger" id="sellerProfileLogout">Logout</button></div><div id="sellerBody"></div>`);
+  if(approved){$("sellerProfileOrders").onclick=sellerOrders;$("sellerProfileProducts").onclick=sellerProducts;$("sellerProfileAdd").onclick=()=>productForm()}
+  else $("sellerProfileStatus").onclick=()=>toast("Seller application: "+seller.status);
+  $("sellerProfileEdit").onclick=()=>sellerPanel();
+  $("sellerProfileLogout").onclick=async()=>{await db.auth.signOut();profile=null;user=null;syncAccountButtons();closeModal();await refreshUser();toast("Logged out")};
+  return;
+ }
+ modal(`<h2>My Customer Profile</h2><p><b>${esc(profile?.full_name||user.email)}</b><br>${esc(user.email||"")}<br>${esc(profile?.phone||"")}</p><div class="dashgrid"><button class="dash" id="ordersBtn">My Purchases & Orders</button><button class="dash" id="sellerBtn">Become a Seller</button><button class="dash" id="coinsBtn">🪙 My Coins & Invite</button><button class="dash" id="alertsBtn">🔔 Product Alerts</button><button class="dash danger" id="logoutBtn">Logout</button></div><div id="dashBody"></div>`);
+ $("ordersBtn").onclick=myOrders;$("sellerBtn").onclick=sellerPanel;$("coinsBtn").onclick=rewardsPanel;$("alertsBtn").onclick=enableProductAlerts;
+ $("logoutBtn").onclick=async()=>{await db.auth.signOut();profile=null;user=null;syncAccountButtons();closeModal();await refreshUser();toast("Logged out")};
+}
 async function rewardsPanel(){
  if(!user){auth();return}
  const body=$("dashBody");
