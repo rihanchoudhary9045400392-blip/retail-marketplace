@@ -15,7 +15,7 @@ function price(p){return Number(p.sale_price??p.price??0)}
 function renderCats(){let list=["All",...categories.map(c=>c.name).filter(Boolean)];$("cats").innerHTML=list.map(c=>`<button class="${active===c?"selected":""}" data-cat="${esc(c)}">${esc(c)}</button>`).join("")}
 function retailNormalize(s){return String(s||"").toLowerCase().replace(/[^a-z0-9 ]/g," ").split(" ").filter(Boolean).join(" ")}
 function retailEditDistance(a,b){if(Math.abs(a.length-b.length)>3)return 99;let prev=Array.from({length:b.length+1},(_,i)=>i);for(let i=1;i<=a.length;i++){let cur=[i];for(let j=1;j<=b.length;j++)cur[j]=Math.min(cur[j-1]+1,prev[j]+1,prev[j-1]+(a[i-1]===b[j-1]?0:1));prev=cur}return prev[b.length]}
-function retailMatches(text,query){const q=retailNormalize(query);if(!q)return true;const hay=retailNormalize(text);if(hay.includes(q))return true;const qs=q.split(" "),hs=hay.split(" ");return qs.every(token=>hs.some(word=>word.startsWith(token)||retailEditDistance(token,word)<=Math.max(1,Math.floor(token.length/4))))}
+function retailMatches(text,query){const q=retailNormalize(query);if(!q)return true;const hay=retailNormalize(text);if(hay.includes(q))return true;const qs=q.split(" "),hs=hay.split(" ");return qs.every(token=>hs.some(word=>word.startsWith(token)||retailEditDistance(token,word)<=Math.max(1,Math.floor(token.length/3))))}
 function render(){
  const q=$("search").value.trim().toLowerCase();
  const shown=products.filter(p=>(active==="All"||p.category===active)&&(!q||retailMatches([p.title,p.brand,p.category,p.description].join(" "),q)));
