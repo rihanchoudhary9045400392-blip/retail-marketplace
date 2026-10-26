@@ -120,10 +120,13 @@ body.sell-menu-open::before{content:"";position:fixed;inset:0;background:rgba(10
 <script>
 (function(){var splash=document.getElementById('retailWelcomeSplash');function hideSplash(){if(splash)splash.classList.add('splash-hidden')}window.setTimeout(hideSplash,2000);window.addEventListener('pageshow',function(){window.setTimeout(hideSplash,2000)},{once:true});})();
 </script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="app.js?v=20261026-similar-product-page-2"></script><script src="invite.js?v=20261026-invite-friends-1"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="app.js?v=20261026-mixed-home-feed-1"></script><script src="invite.js?v=20261026-invite-friends-1"></script>
 <script>
 (function(){
  const dbAll=window.supabase.createClient("https://oebapdfkaumpmwdblqbv.supabase.co","sb_publishable_wmNek6qB6MCiPIJzueJhVQ_7-6d42yl");
+ /* Put the unified mixed marketplace feed before the legacy regular-products area. */
+ const unifiedLayout=document.querySelector(".all-market-layout"),legacyProducts=document.getElementById("products");
+ if(unifiedLayout&&legacyProducts&&legacyProducts.parentNode)legacyProducts.parentNode.insertBefore(unifiedLayout,legacyProducts);
  const el=id=>document.getElementById(id);let rows=[],filter="all";
  const escAll=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
  const moneyAll=n=>"₹"+Number(n||0).toLocaleString("en-IN");
