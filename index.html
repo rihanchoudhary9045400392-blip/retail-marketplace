@@ -75,20 +75,23 @@
 </aside>
 </div>
 <style>
-/* Floating, draggable Sell shortcut; menu appears only after tapping */
+/* Plus button opens a centered, page-like Sell menu */
+body.sell-menu-open::before{content:"";position:fixed;inset:0;background:rgba(10,25,48,.58);backdrop-filter:blur(3px);z-index:9998}
 .retail-sell-hub{position:fixed!important;z-index:10000;right:14px;top:42%;left:auto;bottom:auto;display:flex!important;flex-direction:column;align-items:flex-end;gap:8px;padding:0!important;margin:0!important;background:transparent!important;border:0!important;box-shadow:none!important;width:max-content!important;touch-action:none}
-.sell-rail-toggle{width:auto!important;min-width:76px!important;height:42px!important;padding:0 12px!important;display:flex!important;align-items:center;justify-content:center;gap:5px;border:1px solid #d9e3f1;border-radius:22px!important;background:#0757d9;color:#fff;font-size:22px;line-height:1;box-shadow:0 4px 16px #12365b30;cursor:grab;touch-action:none}
+.sell-rail-toggle{width:auto!important;min-width:76px!important;height:42px!important;padding:0 12px!important;display:flex!important;align-items:center;justify-content:center;gap:5px;border:1px solid #d9e3f1;border-radius:22px!important;background:#0757d9;color:#fff;font-size:22px;line-height:1;box-shadow:0 4px 16px #12365b30;cursor:pointer;touch-action:manipulation}
 .sell-rail-toggle strong{font-size:13px;font-weight:700}.sell-rail-toggle span{font-size:22px;line-height:1}
-.sell-rail-panel{width:205px;max-width:calc(100vw - 28px);padding:9px;display:flex;flex-direction:column;gap:7px;background:#fff;border:1px solid #dce5f1;border-radius:14px;box-shadow:0 10px 30px #102b4b25;touch-action:auto}
-.sell-rail-panel[hidden]{display:none!important}.sell-panel-heading{font-size:14px;font-weight:800;color:#12315b;padding:4px 6px 8px;border-bottom:1px solid #e5ebf4;margin-bottom:5px}
-@media(max-width:600px){.retail-sell-hub{right:12px;top:42%}.sell-rail-panel{width:190px}}
+.sell-rail-panel{position:fixed!important;left:50%!important;top:50%!important;right:auto!important;bottom:auto!important;transform:translate(-50%,-50%);width:min(360px,calc(100vw - 36px))!important;max-width:calc(100vw - 36px);max-height:80vh;overflow:auto;padding:18px!important;display:flex;flex-direction:column;gap:11px;background:#fff;border:1px solid #dce5f1;border-radius:20px;box-shadow:0 24px 70px #06152e55;touch-action:auto;z-index:10002}
+.sell-rail-panel[hidden]{display:none!important}.sell-panel-heading{font-size:20px;font-weight:850;color:#12315b;padding:4px 4px 12px;border-bottom:1px solid #e5ebf4;margin-bottom:3px}
+.sell-rail-panel a{padding:13px!important;border-radius:13px!important}
+@media(max-width:600px){.retail-sell-hub{right:12px;top:42%}.sell-rail-panel{width:calc(100vw - 32px)!important;padding:17px!important}}
 </style>
 <script>(function(){
  const hub=document.querySelector(".retail-sell-hub"),b=document.getElementById("sellRailToggle"),p=document.getElementById("sellRailPanel");
  if(!hub||!b||!p)return;
  p.hidden=true;
- b.addEventListener("click",function(e){if(dragged){e.preventDefault();return}const open=b.getAttribute("aria-expanded")!=="true";b.setAttribute("aria-expanded",String(open));p.hidden=!open});
- document.addEventListener("click",function(e){if(!e.target.closest(".retail-sell-hub")){b.setAttribute("aria-expanded","false");p.hidden=true}});
+ b.addEventListener("click",function(e){if(dragged){e.preventDefault();return}const open=b.getAttribute("aria-expanded")!=="true";b.setAttribute("aria-expanded",String(open));p.hidden=!open;document.body.classList.toggle("sell-menu-open",open)});
+ document.addEventListener("click",function(e){if(!e.target.closest(".retail-sell-hub")){b.setAttribute("aria-expanded","false");p.hidden=true;document.body.classList.remove("sell-menu-open")}});
+ document.addEventListener("keydown",function(e){if(e.key==="Escape"){b.setAttribute("aria-expanded","false");p.hidden=true;document.body.classList.remove("sell-menu-open")}});
  let dragging=false,dragged=false,startX=0,startY=0,left=0,top=0,pid=null;
  b.addEventListener("pointerdown",function(e){dragging=true;dragged=false;pid=e.pointerId;startX=e.clientX;startY=e.clientY;const r=hub.getBoundingClientRect();left=r.left;top=r.top;b.setPointerCapture(pid);b.style.cursor="grabbing"});
  b.addEventListener("pointermove",function(e){if(!dragging||e.pointerId!==pid)return;const dx=e.clientX-startX,dy=e.clientY-startY;if(Math.abs(dx)>4||Math.abs(dy)>4)dragged=true;if(!dragged)return;const x=Math.max(0,Math.min(innerWidth-hub.offsetWidth,left+dx)),y=Math.max(0,Math.min(innerHeight-hub.offsetHeight,top+dy));hub.style.left=x+"px";hub.style.top=y+"px";hub.style.right="auto";hub.style.bottom="auto"});
