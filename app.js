@@ -27,7 +27,19 @@ function render(){
  saveCart();
 }
 function getP(id){return products.find(p=>String(p.id)===String(id))}
-function addToCart(id,qty=1){let p=getP(id);if(!p||String(id).startsWith("sample")){modal("<h2>Demo product</h2><p>Login and use the live catalogue to place a real COD order.</p>");return}let x=cart.find(i=>i.id===id);if(x)x.qty=Math.min(x.qty+qty,Number(p.stock||99));else cart.push({id:p.id,title:p.title,price:price(p),image_url:p.image_url,seller_id:p.seller_id,qty});saveCart();toast("Added to cart ✓")}
+function addToCart(id,qty=1){
+ const p=getP(id);
+ if(!p||String(id).startsWith("sample")){modal("<h2>Product unavailable</h2><p>Please refresh the live catalogue and try again.</p>");return}
+ const stock=Math.max(0,Math.floor(Number(p.stock)||0));
+ if(stock<1){toast("This product is out of stock.");return}
+ const key=String(p.id),existing=cart.find(i=>String(i.id)===key),wanted=Math.max(1,Math.floor(Number(qty)||1));
+ if(existing){
+  if(existing.qty>=stock){toast("Only "+stock+" item(s) available.");return}
+  existing.qty=Math.min(existing.qty+wanted,stock);
+  existing.title=p.title;existing.price=price(p);existing.image_url=p.image_url;existing.seller_id=p.seller_id;
+ }else cart.push({id:p.id,title:p.title,price:price(p),image_url:p.image_url,seller_id:p.seller_id,qty:Math.min(wanted,stock)});
+ saveCart();toast("Added to cart ✓");
+}
 function toast(t){let x=document.createElement("div");x.className="toast";x.textContent=t;document.body.appendChild(x);setTimeout(()=>x.remove(),1800)}
 async function load(){
  const list=$("products"), count=$("resultCount");
@@ -236,7 +248,25 @@ function notifyWhatsApp(orderNumber,items,total,name,phone,address){
  modal('<h2>Order placed ✓</h2><p>Your COD order <b>'+esc(orderNumber)+'</b> has been saved.</p><p class="notice">Tap below to send the order details to RETAIL WhatsApp. WhatsApp will ask you to press Send.</p><a class="primary wide waLink" target="_blank" rel="noopener" href="https://wa.me/919045400392?text='+encodeURIComponent(text)+'">Send order to WhatsApp</a><button class="dash wide" id="doneOrder" type="button">Done</button>');
  $("doneOrder").onclick=closeModal;
 }
-function cartModal(){if(!cart.length){modal("<h2>Your cart is empty</h2><p>Choose a live product to add it here.</p>");return}let h=`<h2>Your Cart</h2>${cart.map((i,idx)=>`<div class="cartrow"><div><b>${esc(i.title)}</b><br><small>${money(i.price)} each</small></div><div class="qty"><button data-q="${idx}" data-d="-1">−</button><b>${i.qty}</b><button data-q="${idx}" data-d="1">+</button><button class="remove" data-r="${idx}">×</button></div></div>`).join("")}<div class="lineitem"><b>Total</b><b>${money(cart.reduce((s,i)=>s+i.price*i.qty,0))}</b></div><button class="primary wide" id="checkoutBtn" type="button">Checkout — COD</button>`;modal(h);document.querySelectorAll("[data-q]").forEach(b=>b.onclick=()=>{let i=cart[+b.dataset.q];i.qty=Math.max(1,i.qty+ +b.dataset.d);saveCart();cartModal()});document.querySelectorAll("[data-r]").forEach(b=>b.onclick=()=>{cart.splice(+b.dataset.r,1);saveCart();cartModal()});$("checkoutBtn").onclick=()=>checkout(cart)}
+function cartModal(){
+ if(!cart.length){modal("<h2>Your cart is empty</h2><p>Choose a live product to add it here.</p>");return}
+ // Reconcile cart rows with the latest catalogue where available.
+ cart=cart.filter(i=>i&&i.id);
+ cart.forEach(i=>{const p=getP(i.id);if(p){i.title=p.title;i.price=price(p);i.image_url=p.image_url;i.seller_id=p.seller_id}});
+ saveCart();
+ const h=`<h2>Your Cart</h2>${cart.map((i,idx)=>`<div class="cartrow"><div><b>${esc(i.title)}</b><br><small>${money(i.price)} each · Subtotal ${money(Number(i.price)*Number(i.qty))}</small></div><div class="qty"><button type="button" data-q="${idx}" data-d="-1" ${Number(i.qty)<=1?"disabled":""}>−</button><b>${i.qty}</b><button type="button" data-q="${idx}" data-d="1">+</button><button type="button" class="remove" data-r="${idx}">×</button></div></div>`).join("")}<div class="lineitem"><b>Total</b><b>${money(cart.reduce((sum,i)=>sum+Number(i.price||0)*Number(i.qty||0),0))}</b></div><button class="primary wide" id="checkoutBtn" type="button">Checkout — COD</button><p class="notice">Prices and stock are checked again before the order is placed.</p>`;
+ modal(h);
+ document.querySelectorAll("[data-q]").forEach(b=>b.onclick=()=>{
+  const i=cart[Number(b.dataset.q)];if(!i)return;
+  const p=getP(i.id),stock=Math.max(0,Math.floor(Number(p?.stock??0)));
+  if(Number(b.dataset.d)>0){if(!p||stock<=Number(i.qty)){toast("Only "+stock+" item(s) available.");return}i.qty++}
+  else i.qty=Math.max(1,Number(i.qty)-1);
+  if(p){i.price=price(p);i.title=p.title}
+  saveCart();cartModal();
+ });
+ document.querySelectorAll("[data-r]").forEach(b=>b.onclick=()=>{cart.splice(Number(b.dataset.r),1);saveCart();cartModal()});
+ $("checkoutBtn").onclick=()=>checkout([...cart].map(i=>({...i})));
+}
 function showProduct(id,buy=false){
  const p=getP(id); if(!p)return;
  const related=products.filter(x=>String(x.id)!==String(p.id)&&x.category===p.category).slice(0,4);
@@ -280,7 +310,63 @@ async function sellerPanel(){
 async function sellerProducts(){
  let r=await db.from("products").select("id,title,price,mrp,sale_price,stock,image_url,status,category_id,categories:category_id(name)").eq("seller_id",user.id).order("created_at",{ascending:false});$("sellerBody").innerHTML=(r.data||[]).map(p=>`<div class="adminrow"><span><b>${esc(p.title)}</b><br>${money(p.sale_price??p.price)} · stock ${p.stock} · ${p.status}</span><span><button data-edit="${p.id}">Edit</button><button data-del="${p.id}" class="danger">Delete</button></span></div>`).join("")||"<p>No products.</p>";document.querySelectorAll("[data-edit]").forEach(b=>b.onclick=()=>productForm(b.dataset.edit));document.querySelectorAll("[data-del]").forEach(b=>b.onclick=()=>deleteProduct(b.dataset.del))}
 async function productForm(id){
- let p=id?getP(id):null;if(id&&!p){const fetched=await db.from("products").select("*").eq("id",id).maybeSingle();if(fetched.error){toast(fetched.error.message);return;}p=fetched.data;}let h=`<h2>${p?"Edit":"Add"} Product</h2><label>Title</label><input id="pt" value="${esc(p?.title||"")}"><label>Brand</label><input id="pb" value="${esc(p?.brand||"")}"><label>Category</label><select id="pc">${allCategories.map(c=>`<option value="${c.id}" ${p?.category_id===c.id?"selected":""}>${esc(c.name)}</option>`).join("")}</select><label>Description</label><textarea id="pd">${esc(p?.description||"")}</textarea><div class="twocol"><div><label>MRP</label><input id="pm" type="number" value="${p?.mrp||""}"></div><div><label>Sale price</label><input id="ps" type="number" value="${p?.sale_price??p?.price??""}"></div></div><label>Stock</label><input id="pk" type="number" value="${p?.stock??0}"><label>Product image</label><input id="pi" type="file" accept="image/*"><button class="primary wide" id="saveProduct" type="button">Save Product</button><p id="pmg"></p>`;modal(h);$("saveProduct").onclick=async()=>{let m=$("pmg"),title=$("pt").value.trim(),mrp=+$("pm").value,sale=+$("ps").value,stock=+$("pk").value;if(!title||!sale){m.textContent="Title and sale price are required.";return}let image=p?.image_url||null,file=$("pi").files[0];if(file){let path=(user.id)+"/"+crypto.randomUUID()+"-"+file.name.replace(/[^a-zA-Z0-9._-]/g,"_"),up=await db.storage.from("product-images").upload(path,file,{upsert:false});if(up.error){m.textContent=up.error.message;return}image=db.storage.from("product-images").getPublicUrl(path).data.publicUrl}let data={title,brand:$("pb").value.trim()||null,category_id:$("pc").value,description:$("pd").value.trim(),mrp,sale_price:sale,price:sale,stock,image_url:image,status:"active",seller_id:user.id};let x=id?await db.from("products").update(data).eq("id",id):await db.from("products").insert(data);m.textContent=x.error?x.error.message:"Saved ✓";if(!x.error){await load();setTimeout(closeModal,600)}} }async function deleteProduct(id){
+ if(!user){auth();return}
+ let p=id?getP(id):null;
+ if(id&&!p){
+  const fetched=await db.from("products").select("*").eq("id",id).maybeSingle();
+  if(fetched.error){modal("<h2>Could not load product</h2><p>"+esc(fetched.error.message)+"</p>");return}
+  p=fetched.data;
+ }
+ if(id&&!p){modal("<h2>Product not found</h2><p>Refresh the product list and try again.</p>");return}
+ if(!allCategories.length){
+  const c=await db.from("categories").select("id,name,slug").order("name");
+  if(!c.error){allCategories=c.data||[];categories=allCategories}
+ }
+ const categoryOptions=`<option value="">Choose category</option>`+allCategories.map(c=>`<option value="${esc(c.id)}" ${String(p?.category_id||"")===String(c.id)?"selected":""}>${esc(c.name)}</option>`).join("");
+ const h=`<h2>${p?"Edit":"Add"} Product</h2>
+ <label for="pt">Product title *</label><input id="pt" maxlength="160" value="${esc(p?.title||"")}" placeholder="Product name" required>
+ <label for="pb">Brand</label><input id="pb" maxlength="100" value="${esc(p?.brand||"")}" placeholder="Brand name">
+ <label for="pc">Category</label><select id="pc">${categoryOptions}</select>
+ <label for="pd">Description</label><textarea id="pd" rows="4" maxlength="3000" placeholder="Product details">${esc(p?.description||"")}</textarea>
+ <div class="twocol"><div><label for="pm">MRP (₹)</label><input id="pm" type="number" min="0" step="0.01" value="${p?.mrp??""}" placeholder="Optional"></div><div><label for="ps">Sale price (₹) *</label><input id="ps" type="number" min="0.01" step="0.01" value="${p?.sale_price??p?.price??""}" placeholder="Selling price" required></div></div>
+ <label for="pk">Stock quantity *</label><input id="pk" type="number" min="0" step="1" value="${p?.stock??0}" required>
+ <label for="pi">Product image ${p?.image_url?"(choose only to replace current image)":"(optional)"}</label><input id="pi" type="file" accept="image/*">
+ ${p?.image_url?`<p><img src="${esc(p.image_url)}" alt="Current product image" style="width:88px;height:88px;object-fit:contain;border:1px solid #ddd;border-radius:10px"></p>`:""}
+ <button class="primary wide" id="saveProduct" type="button">Save Product</button><p id="pmg" role="status" aria-live="polite"></p>`;
+ modal(h);
+ $("saveProduct").onclick=async()=>{
+  const m=$("pmg"),btn=$("saveProduct");
+  const title=$("pt").value.trim(),brand=$("pb").value.trim(),categoryId=$("pc").value||null,description=$("pd").value.trim();
+  const mrpRaw=$("pm").value.trim(),saleRaw=$("ps").value.trim(),stockRaw=$("pk").value.trim();
+  const sale=Number(saleRaw),mrp=mrpRaw===""?null:Number(mrpRaw),stock=Number(stockRaw);
+  if(!title){m.textContent="Product title is required.";return}
+  if(!saleRaw||!Number.isFinite(sale)||sale<=0){m.textContent="Enter a valid sale price greater than ₹0.";return}
+  if(mrp!==null&&(!Number.isFinite(mrp)||mrp<sale)){m.textContent="MRP must be at least the sale price, or leave MRP blank.";return}
+  if(!stockRaw||!Number.isInteger(stock)||stock<0){m.textContent="Stock must be a whole number (0 or more).";return}
+  const file=$("pi").files?.[0];
+  if(file&&(!file.type.startsWith("image/")||file.size>5*1024*1024)){m.textContent="Choose an image under 5 MB.";return}
+  btn.disabled=true;btn.textContent="Saving…";m.textContent="Saving product…";
+  try{
+   let image=p?.image_url||null;
+   if(file){
+    const safeName=file.name.replace(/[^a-zA-Z0-9._-]/g,"_");
+    const path=user.id+"/"+crypto.randomUUID()+"-"+safeName;
+    const up=await db.storage.from("product-images").upload(path,file,{upsert:false});
+    if(up.error)throw new Error("Image upload failed: "+up.error.message);
+    image=db.storage.from("product-images").getPublicUrl(path).data.publicUrl;
+   }
+   const data={title,brand:brand||null,category_id:categoryId,description:description||null,mrp,sale_price:sale,price:sale,stock,image_url:image,status:p?.status||"active",seller_id:p?.seller_id||user.id};
+   const x=id?await db.from("products").update(data).eq("id",id):await db.from("products").insert(data);
+   if(x.error)throw new Error(x.error.message);
+   toast(p?"Product updated ✓":"Product added ✓");
+   await load();
+   if($("retailAdminFullPage")?.isConnected){closeModal();await adminProducts()}
+   else if($("sellerBody")){closeModal();await sellerProducts()}
+   else{m.textContent="Saved ✓";setTimeout(closeModal,500)}
+  }catch(err){m.textContent=err?.message||"Could not save product. Please try again.";btn.disabled=false;btn.textContent="Save Product"}
+ };
+}
+async function deleteProduct(id){
  if(!confirm("Delete this product?"))return;
  let p=getP(id),x=await db.from("products").delete().eq("id",id);
  if(x.error){toast(x.error.message);return}
