@@ -242,7 +242,7 @@ function showProduct(id,buy=false){
  const related=products.filter(x=>String(x.id)!==String(p.id)&&x.category===p.category).slice(0,4);
  const page=$("productPage");
  if(!page){modal("<h2>Product details unavailable</h2><p>Please refresh Retail.</p>");return;}
- const heroSection=$("heroSection"); if(heroSection)heroSection.hidden=true; const catalogHeading=$("catalogHeading"); if(catalogHeading)catalogHeading.hidden=true; const productsGrid=$("products"); if(productsGrid)productsGrid.hidden=true; page.hidden=false;
+ const heroSection=$("heroSection"); if(heroSection)heroSection.hidden=true; const catalogHeading=$("catalogHeading"); if(catalogHeading)catalogHeading.hidden=true; const productsGrid=$("products"); if(productsGrid)productsGrid.hidden=true; const allListings=$("allListings"); if(allListings)allListings.hidden=true; const allLayout=document.querySelector(".all-market-layout"); if(allLayout)allLayout.hidden=true; const shortcuts=document.querySelector(".marketplace-shortcuts"); if(shortcuts)shortcuts.hidden=true; page.hidden=false;
  history.pushState({retailProduct:String(id)},"","#product/"+encodeURIComponent(id));
  page.innerHTML=`<button class="back-products" id="backProducts">← Back to products</button>
  <div class="product-detail-page">
@@ -263,7 +263,7 @@ function showProduct(id,buy=false){
 }
 function showCatalogue(clearHash=false){
  const page=$("productPage");if(page)page.hidden=true;
- const heroSection=$("heroSection");if(heroSection)heroSection.hidden=false;$("catalogHeading").hidden=false;$("products").hidden=false;
+ const heroSection=$("heroSection");if(heroSection)heroSection.hidden=false;$("catalogHeading").hidden=false;$("products").hidden=false;const allListings=$("allListings");if(allListings)allListings.hidden=false;const allLayout=document.querySelector(".all-market-layout");if(allLayout)allLayout.hidden=false;const shortcuts=document.querySelector(".marketplace-shortcuts");if(shortcuts)shortcuts.hidden=false;
  if(clearHash&&location.hash.startsWith("#product/"))history.pushState({retailHome:true},"",location.pathname+location.search);
  window.scrollTo({top:0,behavior:"smooth"});
 }
