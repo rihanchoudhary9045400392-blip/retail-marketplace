@@ -338,8 +338,10 @@ async function productForm(id){
  <label for="pk">Stock quantity *</label><input id="pk" type="number" min="0" step="1" value="${p?.stock??0}" required>
  <label for="pi">Product image ${p?.image_url?"(choose only to replace current image)":"(optional)"}</label><input id="pi" type="file" accept="image/*">
  ${p?.image_url?`<p><img src="${esc(p.image_url)}" alt="Current product image" style="width:88px;height:88px;object-fit:contain;border:1px solid #ddd;border-radius:10px"></p>`:""}
+ ${!p?`<section class="notice" style="margin:14px 0"><b>Product listing fee</b><label for="listingPaymentMethod">Choose payment method</label><select id="listingPaymentMethod"><option value="coins">Use 50 RETAIL Coins</option><option value="upi">Pay ₹10 by UPI QR</option></select><div id="upiListingBox" hidden style="text-align:center;margin-top:12px"><p>Scan this QR with any UPI app and pay exactly ₹10 to <b>RIHAN</b>.</p><img alt="UPI QR for ₹10 RETAIL product listing" style="width:210px;max-width:100%;border:1px solid #ddd;border-radius:12px" src="https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=upi%3A%2F%2Fpay%3Fpa%3D9045400392-2%40ibl%26pn%3DRIHAN%26am%3D10%26cu%3DINR%26tn%3DRETAIL%2520product%2520listing"><p><a href="upi://pay?pa=9045400392-2@ibl&amp;pn=RIHAN&amp;am=10&amp;cu=INR&amp;tn=RETAIL%20product%20listing">Open UPI app to pay ₹10</a></p><p style="font-size:12px">UPI ID: <b>9045400392-2@ibl</b></p><label for="listingUtr">UPI transaction ID / UTR *</label><input id="listingUtr" maxlength="80" placeholder="Enter UTR after payment"><small>Product will be saved after admin verifies the payment.</small></div></section>`: ""}
  <button class="primary wide" id="saveProduct" type="button">Save Product</button><p id="pmg" role="status" aria-live="polite"></p>`;
  modal(h);
+ if(!p){$("listingPaymentMethod").onchange=()=>{$("upiListingBox").hidden=$("listingPaymentMethod").value!=="upi"}}
  $("saveProduct").onclick=async()=>{
   const msg=text=>{const node=$("pmg");if(node?.isConnected)node.textContent=text;else toast(text)};
   const btn=$("saveProduct");
@@ -352,7 +354,10 @@ async function productForm(id){
   if(!stockRaw||!Number.isInteger(stock)||stock<0){msg("Stock must be a whole number (0 or more).");return}
   const file=$("pi").files?.[0];
   if(file&&(!file.type.startsWith("image/")||file.size>5*1024*1024)){msg("Choose an image under 5 MB.");return}
-  btn.disabled=true;btn.textContent="Saving…";msg("Saving product…");
+  const paymentMethod=p?"coins":$("listingPaymentMethod").value;
+  const utr=paymentMethod==="upi"?$("listingUtr").value.trim():"";
+  if(paymentMethod==="upi"&&(!utr||utr.length<6)){msg("Pay ₹10 and enter the UPI transaction ID / UTR.");return}
+  btn.disabled=true;btn.textContent="Saving…";msg(paymentMethod==="upi"?"Submitting payment for verification…":"Saving product…");
   try{
    let image=p?.image_url||null;
    if(file){
@@ -363,6 +368,15 @@ async function productForm(id){
     image=db.storage.from("product-images").getPublicUrl(path).data.publicUrl;
    }
    const data={title,brand:brand||null,category_id:categoryId,description:description||null,mrp,sale_price:sale,price:sale,stock,image_url:image,status:p?.status||"active",seller_id:p?.seller_id||user.id};
+   if(!id&&paymentMethod==="upi"){
+    const request=await db.from("product_listing_payment_requests").insert({seller_id:user.id,product_data:{title,brand:brand||"",category_id:categoryId||"",description:description||"",mrp:mrp===null?"":String(mrp),sale_price:String(sale),stock:String(stock),image_url:image||""},utr,amount:10}).select("id").single();
+    if(request.error)throw new Error(request.error.message);
+    toast("Payment submitted. Product will appear after admin verifies ₹10 payment.");
+    msg("Payment submitted for admin verification. Keep your UTR: "+utr);
+    btn.disabled=true;btn.textContent="Awaiting verification";
+    setTimeout(()=>{closeModal();if($("sellerBody"))sellerProducts()},1400);
+    return;
+   }
    const x=id?await db.from("products").update(data).eq("id",id):await db.from("products").insert(data);
    if(x.error)throw new Error(x.error.message);
    toast(p?"Product updated ✓":"Product added ✓");
@@ -411,7 +425,7 @@ async function adminPanel(){
  const tabs=[...page.querySelectorAll("[data-raf-tab]")];
  const activate=key=>{tabs.forEach(b=>b.classList.toggle("active",b.dataset.rafTab===key));if(key==="products")adminProducts();else if(key==="orders")adminOrders();else if(key==="sellers")adminSellers();else adminOverview()};
  tabs.forEach(b=>b.onclick=()=>activate(b.dataset.rafTab));
- async function adminOverview(){const host=$("adminBody"),metrics=$("rafMetrics");host.innerHTML="<h2>Quick actions</h2><div class=\'dashgrid\'><button class=\'dash\' id=\'rafAddProduct\'>＋ Add product</button><button class=\'dash\' id=\'rafViewProducts\'>Manage products</button><button class=\'dash\' id=\'rafViewOrders\'>Manage orders</button><button class=\'dash\' id=\'rafViewSellers\'>Seller approvals</button></div>";$("rafAddProduct").onclick=()=>productForm();$("rafViewProducts").onclick=()=>activate("products");$("rafViewOrders").onclick=()=>activate("orders");$("rafViewSellers").onclick=()=>activate("sellers");
+ async function adminOverview(){const host=$("adminBody"),metrics=$("rafMetrics");host.innerHTML="<h2>Quick actions</h2><div class=\'dashgrid\'><button class=\'dash\' id=\'rafAddProduct\'>＋ Add product</button><button class=\'dash\' id=\'rafViewProducts\'>Manage products</button><button class=\'dash\' id=\'rafViewOrders\'>Manage orders</button><button class=\'dash\' id=\'rafViewSellers\'>Seller approvals</button><button class=\'dash\' id=\'rafListingPayments\'>Listing payments</button></div>";$("rafAddProduct").onclick=()=>productForm();$("rafViewProducts").onclick=()=>activate("products");$("rafViewOrders").onclick=()=>activate("orders");$("rafViewSellers").onclick=()=>activate("sellers");$("rafListingPayments").onclick=adminListingPayments;
  const a=await Promise.all([db.from("products").select("id,status"),db.from("orders").select("id,subtotal,status"),db.from("seller_profiles").select("user_id,status")]);if(!page.isConnected)return;const p=a[0].error?null:a[0].data||[],o=a[1].error?null:a[1].data||[],s=a[2].error?null:a[2].data||[];
  metrics.innerHTML="<div class=\'raf-metric\'><small>Products</small><strong>"+(p?p.length:"—")+"</strong><small>"+(p?p.filter(x=>x.status==="active").length+" active":"Load error")+"</small></div><div class=\'raf-metric\'><small>Total orders</small><strong>"+(o?o.length:"—")+"</strong><small>"+(o?o.filter(x=>!["delivered","cancelled"].includes(String(x.status).toLowerCase())).length+" in progress":"Load error")+"</small></div><div class=\'raf-metric\'><small>Pending sellers</small><strong>"+(s?s.filter(x=>x.status==="pending").length:"—")+"</strong></div><div class=\'raf-metric\'><small>Order value</small><strong>"+(o?money(o.reduce((n,x)=>n+Number(x.subtotal||0),0)):"—")+"</strong></div>";}
  activate("dashboard");
@@ -435,6 +449,15 @@ async function adminSellers(){
    await adminSellers();
   });
  }catch(err){console.error("RETAIL adminSellers failed:",err);body.innerHTML="<p class='notice'>Could not open seller applications: "+esc(err?.message||"Unknown error")+"</p><button class='dash' id='sellerRetry' type='button'>Retry</button>";$("sellerRetry").onclick=adminSellers;}
+}
+async function adminListingPayments(){
+ const host=$("adminBody");host.innerHTML="<p>Loading listing payment requests…</p>";
+ const r=await db.from("product_listing_payment_requests").select("id,seller_id,product_data,utr,amount,status,created_at").order("created_at",{ascending:false}).limit(100);
+ if(r.error){host.innerHTML="<p class='notice'>Could not load listing payments: "+esc(r.error.message)+"</p>";return}
+ const rows=(r.data||[]).filter(x=>x.status==="pending");
+ host.innerHTML="<h2>Seller product listing payments</h2><p>Verify the ₹10 payment in your UPI app before approving. Do not approve from a screenshot alone.</p>"+(rows.map(x=>`<div class="adminrow"><span><b>${esc(x.product_data?.title||"Product")}</b><br>Seller ID: ${esc(x.seller_id)}<br>₹${Number(x.amount).toFixed(2)} · UTR: <b>${esc(x.utr)}</b><br><small>${new Date(x.created_at).toLocaleString("en-IN")}</small></span><span><button data-listing-approve="${x.id}">Approve</button><button class="danger" data-listing-reject="${x.id}">Reject</button></span></div>`).join("")||"<p>No pending payment requests.</p>");
+ document.querySelectorAll("[data-listing-approve]").forEach(b=>b.onclick=async()=>{if(!confirm("Have you verified this ₹10 payment in the UPI account? Approve and publish product?"))return;b.disabled=true;const z=await db.rpc("review_product_listing_payment",{p_request_id:b.dataset.listingApprove,p_approve:true});if(z.error){alert(z.error.message);b.disabled=false;return}toast("Payment approved; product published ✓");await load();adminListingPayments()});
+ document.querySelectorAll("[data-listing-reject]").forEach(b=>b.onclick=async()=>{if(!confirm("Reject this listing payment request?"))return;b.disabled=true;const z=await db.rpc("review_product_listing_payment",{p_request_id:b.dataset.listingReject,p_approve:false});if(z.error){alert(z.error.message);b.disabled=false;return}toast("Payment request rejected");adminListingPayments()});
 }
 async function adminProducts(){let r=await db.from("products").select("id,title,sale_price,stock,status,seller_id,profiles:seller_id(full_name),categories:category_id(name)").order("created_at",{ascending:false});if(r.error){$("adminBody").innerHTML="<p class=notice>Could not load products: "+esc(r.error.message)+"</p><button class=primary id=adminRetry>Retry</button>";$("adminRetry").onclick=adminProducts;return;}$("adminBody").innerHTML=`<button class="primary" id="adminAdd">Add product</button>`+(r.data||[]).map(p=>`<div class="adminrow"><span><b>${esc(p.title)}</b><br>${money(p.sale_price??0)} · ${p.stock} · ${p.status} · ${esc(p.profiles?.full_name||"")}</span><span><button data-ap="${p.id}">Edit</button><button data-adp="${p.id}" class="danger">Delete</button></span></div>`).join("");$("adminAdd").onclick=()=>productForm();document.querySelectorAll("[data-ap]").forEach(b=>b.onclick=()=>productForm(b.dataset.ap));document.querySelectorAll("[data-adp]").forEach(b=>b.onclick=async()=>{if(confirm("Delete product?")){let d=await db.from("products").delete().eq("id",b.dataset.adp);if(d.error){alert("Delete failed: "+d.error.message);return}toast("Product deleted ✓");await load();adminProducts()}})}
 async function adminOrderDetail(orderId){
