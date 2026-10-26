@@ -134,7 +134,7 @@
   const sort=el("allListingsSort").value,q=searchInput?.value.trim()||"";
   let visible=rows.filter(x=>(filter==="all"||(filter==="regular"&&x.kind==="regular")||(filter==="fruit"&&x.kind==="fruit")||x.kind===filter)&&(!q||matchesSearch([x.title,x.category,x.brand,x.breed,x.city,x.condition].filter(Boolean).join(" "),q)));
   if(sort==="low")visible.sort((a,b)=>a.price-b.price);else if(sort==="high")visible.sort((a,b)=>b.price-a.price);else visible.sort((a,b)=>new Date(b.createdAt||0)-new Date(a.createdAt||0));
-  el("allListingsCount").textContent=visible.length+" shown · "+rows.length+" total";
+  const listingCount=el("allListingsCount");if(listingCount)listingCount.textContent=visible.length+" shown · "+rows.length+" total";
   el("allListingsGrid").innerHTML=visible.map(cardAll).join("")||'<div class="all-listing-empty">No active listings in this section yet.</div>';
  }
  async function loadAll(){
